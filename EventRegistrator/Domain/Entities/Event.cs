@@ -1,7 +1,6 @@
 ﻿using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Infrastructure.Utils;
 using Newtonsoft.Json;
-using Telegram.Bot.Types;
 
 namespace EventRegistrator.Domain.Models
 {
@@ -117,26 +116,57 @@ namespace EventRegistrator.Domain.Models
         public void EditTemplate(string text)
         {
             var values = TimeSlotParser.ParseTemplate(text);
-            if (_slots.Any(s => s.CurrentRegistrationCount > 0) && values.Count < _slots.Count)
+            if (!CanReduceSlotsTo(values.Count))
             {
                 Console.WriteLine("Попытка обновить шаблон в котором есть записи убрав слоты");
                 return;
             }
-
-
             var i = 0;
-            for (; i < _slots.Count; i++)
+            if (values.Count >= _slots.Count)
             {
-                _slots[i].EditTime(values[i].time);
-                _slots[i].EditCapacity(values[i].capacity);
+                for (; i < _slots.Count; i++)
+                {
+                    _slots[i].EditTime(values[i].time);
+                    _slots[i].EditCapacity(values[i].capacity);
+                }
+                for (; i < values.Count; i++)
+                {
+                    AddSlot(new TimeSlot(values[i].time, values[i].capacity));
+                }
             }
-
-            for (; i < values.Count; i++)
+            else if (values.Count < _slots.Count)
             {
-                AddSlot(new TimeSlot(values[i].time, values[i].capacity));
+                for (; i < values.Count; i++)
+                {
+                    _slots[i].EditTime(values[i].time);
+                    _slots[i].EditCapacity(values[i].capacity);
+                }
+
+                for (; i < _slots.Count; i++)
+                {
+                    RemoveSlot(_slots[i]);
+                }
             }
 
             _templateText = TimeSlotParser.UpdateTemplateText(text, _slots);
+        }
+
+        private bool CanReduceSlotsTo(int count)
+        {
+            if (count >= _slots.Count)
+            {
+                return true;
+            }
+
+            for (int i = count; i < _slots.Count; i++)
+            {
+                if (_slots[i].CurrentRegistrationCount > 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

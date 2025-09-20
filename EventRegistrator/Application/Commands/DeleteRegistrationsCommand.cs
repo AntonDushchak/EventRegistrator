@@ -38,7 +38,7 @@ namespace EventRegistrator.Application.Commands
                     message.IsEdit = false;
                     var text = TimeSlotParser.UpdateTemplateText(@event.TemplateText, @event.Slots);
                     @event.UpdateTemplate(text);
-                    return GetSuccessResponsesForEdit(user, resultUndo);
+                    return GetSuccessResponsesForEdit(user, resultUndo, message.Id);
                 }
 
                 return [];
@@ -52,7 +52,7 @@ namespace EventRegistrator.Application.Commands
                     message.IsEdit = false;
                     var text = TimeSlotParser.UpdateTemplateText(@event.TemplateText, @event.Slots);
                     @event.UpdateTemplate(text);
-                    return GetSuccessResponsesForEdit(user, resultUndo);
+                    return GetSuccessResponsesForEdit(user, resultUndo, message.Id);
                 }
                 return [];
             }
@@ -61,11 +61,11 @@ namespace EventRegistrator.Application.Commands
             return [];
         }
 
-        private List<Response> GetSuccessResponsesForEdit(UserAdmin user, RegistrationResult result)
+        private List<Response> GetSuccessResponsesForEdit(UserAdmin user, RegistrationResult result, int messageId)
         {
             var messages = _responseManager.PrepareNotificationMessages(user, result.Event);
             messages.Add(_responseManager.CreateUnlikeMessage(result.Event.TargetChatId, result.MessageIds.FirstOrDefault()));
-            messages.Add(_responseManager.CreateLikeMessage(result.Event.TargetChatId, result.MessageIds.FirstOrDefault()));
+            messages.Add(_responseManager.CreateLikeMessage(result.Event.TargetChatId, messageId));
             return messages;
         }
     }

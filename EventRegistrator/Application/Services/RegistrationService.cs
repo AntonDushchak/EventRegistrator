@@ -8,16 +8,27 @@ namespace EventRegistrator.Application.Services
     {
         public RegistrationResult ProcessRegistration(Event @event, List<Registration> registrations)
         {
+            var addedRegistrations = new List<Registration>();
             foreach (var registration in registrations)
             {
-                var result = @event.AddRegistration(registration);
-                if (result == true)
+                if (@event.AddRegistration(registration))
                 {
-                    return new RegistrationResult { Event = @event, Success = true };
+                    addedRegistrations.Add(registration);
+                }
+                else
+                {
+                    Console.WriteLine("Ошибка добавления во временной слот");
+
+                    foreach (var addedReg in addedRegistrations)
+                    {
+                        @event.RemoveRegistrations(addedReg.MessageId);
+                    }
+
+                    return new RegistrationResult { Success = false };
                 }
             }
-            Console.WriteLine("Ошибка добавления во временной слот");
-            return new RegistrationResult { Success = false };
+            
+            return new RegistrationResult { Event = @event, Success = true };
         }
 
         public RegistrationResult CancelRegistration(Event @event, int messageId)
