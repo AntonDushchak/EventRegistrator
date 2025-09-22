@@ -1,6 +1,6 @@
 ﻿using EventRegistrator.Application.Enums;
 using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 
 namespace EventRegistrator.Application.Factories

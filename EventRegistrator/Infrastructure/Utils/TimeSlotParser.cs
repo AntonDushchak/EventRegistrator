@@ -1,5 +1,5 @@
 ﻿using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using System.Globalization;
 using System.Text.RegularExpressions;
 

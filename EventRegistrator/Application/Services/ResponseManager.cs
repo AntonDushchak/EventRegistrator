@@ -1,5 +1,5 @@
 ﻿using EventRegistrator.Application.DTOs;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 
 namespace EventRegistrator.Application.Services

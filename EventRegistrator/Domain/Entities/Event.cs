@@ -2,7 +2,7 @@
 using EventRegistrator.Infrastructure.Utils;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     [Serializable]
     public class Event : IPagiable

@@ -1,9 +1,8 @@
 ﻿using EventRegistrator.Application.DTOs;
 using EventRegistrator.Domain.DTO;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Domain.Models;
 using EventRegistrator.Infrastructure.Utils;
-using Telegram.Bot.Types;
 
 namespace EventRegistrator.Application.Services
 {
@@ -139,8 +138,8 @@ namespace EventRegistrator.Application.Services
             {
                 Console.WriteLine("Ошибка при парсинге хештега. Нету диеза");
                 return null;
-            }    
-                
+            }
+
             return lastLine.Trim(_hashtag);
         }
     }

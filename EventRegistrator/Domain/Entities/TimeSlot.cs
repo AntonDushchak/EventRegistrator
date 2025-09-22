@@ -1,8 +1,7 @@
 ﻿using EventRegistrator.Infrastructure.Persistence;
 using Newtonsoft.Json;
-using System.Collections.Generic;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     [Serializable]
     public class TimeSlot

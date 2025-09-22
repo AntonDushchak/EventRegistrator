@@ -34,8 +34,6 @@ namespace EventRegistrator.Infrastructure.Telegram
                 }
                 catch (Exception ex)
                 {
-                    // Логируем ошибку, чтобы не падал весь цикл
-                    // Можно использовать ваш логгер, если он есть
                     Console.WriteLine($"Ошибка при отправке сообщения: {ex}");
                     Console.WriteLine($"Данные сообщения: ChatId={message.ChatId}, Text={message.Text}, MessageToEditId={message.MessageToEditId}, MessageToReplyId={message.MessageToReplyId}, Like={message.Like}, UnLike={message.UnLike}");
                 }

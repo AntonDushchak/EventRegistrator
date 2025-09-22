@@ -1,5 +1,5 @@
-﻿using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Domain.Models;
+﻿using EventRegistrator.Domain.Entities;
+using EventRegistrator.Domain.Interfaces;
 using Newtonsoft.Json;
 
 namespace EventRegistrator.Infrastructure.Persistence

@@ -5,8 +5,8 @@ using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Application.Services;
 using EventRegistrator.Application.States;
 using EventRegistrator.Domain.DTO;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Domain.Models;
 using EventRegistrator.Infrastructure;
 
 namespace EventRegistrator.Application.Commands

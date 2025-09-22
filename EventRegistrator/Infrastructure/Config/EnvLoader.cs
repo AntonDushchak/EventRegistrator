@@ -1,4 +1,4 @@
-﻿using EventRegistrator.Domain.Models;
+﻿using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Persistence;
 
 namespace EventRegistrator.Infrastructure.Config

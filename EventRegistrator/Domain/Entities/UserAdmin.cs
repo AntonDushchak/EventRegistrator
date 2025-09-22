@@ -2,7 +2,7 @@
 using EventRegistrator.Application.Interfaces;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     [Serializable]
     public class UserAdmin

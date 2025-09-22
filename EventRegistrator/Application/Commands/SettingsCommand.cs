@@ -4,7 +4,7 @@ using EventRegistrator.Application.Enums;
 using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Domain;
 using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 
 namespace EventRegistrator.Application.Commands
 {
