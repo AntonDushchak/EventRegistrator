@@ -1,5 +1,6 @@
 ﻿using EventRegistrator.Infrastructure.Persistence;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace EventRegistrator.Domain.Models
 {
@@ -116,5 +117,7 @@ namespace EventRegistrator.Domain.Models
         {
             return _currentRegistrations.FirstOrDefault(r => r.Name == name);
         }
+
+        public IReadOnlyCollection<Registration> GetRegistrations() => _currentRegistrations.AsReadOnly();
     }
 }

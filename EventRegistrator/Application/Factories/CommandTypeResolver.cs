@@ -24,6 +24,8 @@ namespace EventRegistrator.Application.Factories
                 return message.Text;
             if (message.IsEdit && IsReplyToPostMessage(message, user))
                 return "EditRegistrations";
+            if (message.IsEdit && IsFromChannel(message, user) && IsHasHashtag(message, user))
+                return "EditEvent";
             if (IsFromChannel(message, user) && IsHasHashtag(message, user))
                 return "CreateEvent";
             if (message.Text.EndsWith('?'))
