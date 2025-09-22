@@ -3,6 +3,7 @@ using EventRegistrator.Domain.DTO;
 using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Domain.Models;
 using EventRegistrator.Infrastructure.Utils;
+using Telegram.Bot.Types;
 
 namespace EventRegistrator.Application.Services
 {
@@ -121,17 +122,26 @@ namespace EventRegistrator.Application.Services
 
         private static string ParseHashtagName(string text)
         {
-            ArgumentNullException.ThrowIfNull(text, nameof(text));
-            var lastPart = text.Split(
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            var lines = text.Split(
                 new[] { "\r\n", "\n", "\r" },
-                StringSplitOptions.None
-            ).Last();
-            if (lastPart == null || !lastPart.StartsWith(_hashtag))
+                StringSplitOptions.RemoveEmptyEntries
+            );
+
+            if (lines.Length == 0)
+                return null;
+
+            var lastLine = lines.Last().Trim();
+
+            if (!lastLine.StartsWith(_hashtag) || lastLine.Contains(' '))
             {
                 Console.WriteLine("Ошибка при парсинге хештега. Нету диеза");
                 return null;
-            }
-            return lastPart.Trim(_hashtag);
+            }    
+                
+            return lastLine.Trim(_hashtag);
         }
     }
 }

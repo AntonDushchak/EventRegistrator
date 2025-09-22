@@ -41,15 +41,24 @@ namespace EventRegistrator.Application.Factories
 
         private static bool IsHasHashtag(MessageDTO message, UserAdmin user)
         {
-            var lastPart = message.Text.Split(
+            if (string.IsNullOrWhiteSpace(message.Text))
+                return false;
+
+            var lines = message.Text.Split(
                 new[] { "\r\n", "\n", "\r" },
-                StringSplitOptions.None
-            ).Last();
-            if (user.ContainsHashtag(lastPart.Trim(_hashtag)))
-            {
-                return true;
-            }
-            return false;
+                StringSplitOptions.RemoveEmptyEntries
+            );
+
+            if (lines.Length == 0)
+                return false;
+
+            var lastLine = lines.Last().Trim();
+
+            if (!lastLine.StartsWith(_hashtag) || lastLine.Contains(' '))
+                return false;
+
+            string hashtagName = lastLine.TrimStart(_hashtag);
+            return !string.IsNullOrEmpty(hashtagName) && user.ContainsHashtag(hashtagName);
         }
 
         private static bool IsFromChannel(MessageDTO message, UserAdmin user)
