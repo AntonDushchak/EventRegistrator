@@ -31,7 +31,7 @@ namespace EventRegistrator.Domain.Entities
 
         public bool AddEvent(Event @event)
         {
-            if (_events.Count > 6)
+            if (_events.Count >= 6)
             {
                 _events.RemoveRange(0, 4);
             }
