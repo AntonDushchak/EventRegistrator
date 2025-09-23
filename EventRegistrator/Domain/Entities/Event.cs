@@ -105,6 +105,8 @@ namespace EventRegistrator.Domain.Entities
         public bool AddRegistration(Registration registration)
         {
             var slot = TimeSlotParser.FindMatchingTimeSlot(_slots, registration);
+            if (slot == null)
+                return false;
             return slot.AddRegistration(registration);
         }
 
