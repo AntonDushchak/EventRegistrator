@@ -1,7 +1,7 @@
 ﻿using EventRegistrator.Domain.Interfaces;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     public class TargetChat : IPagiable
     {
@@ -32,13 +32,13 @@ namespace EventRegistrator.Domain.Models
             Console.WriteLine("Попытка добавить повторяющийся хештег");
         }
 
-        public Hashtag GetHashtagByName(string name)
+        public Hashtag? GetHashtagByName(string name)
         {
             if (_hashtags.TryGetValue(name, out var hashtag))
             {
                 return hashtag;
             }
-            throw new NotImplementedException();
+            return null;
         }
 
         public bool ContainsHashtag(string hashtag)

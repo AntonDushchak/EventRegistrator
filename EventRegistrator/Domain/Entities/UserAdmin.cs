@@ -2,7 +2,7 @@
 using EventRegistrator.Application.Interfaces;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     [Serializable]
     public class UserAdmin
@@ -31,7 +31,7 @@ namespace EventRegistrator.Domain.Models
 
         public bool AddEvent(Event @event)
         {
-            if (_events.Count > 6)
+            if (_events.Count >= 6)
             {
                 _events.RemoveRange(0, 4);
             }
@@ -54,9 +54,15 @@ namespace EventRegistrator.Domain.Models
             return _events.FirstOrDefault(e => e.Id == guid);
         }
 
-        public Event? GetEvent(long targetChatId, int threadId)
+        public Event? GetEventByThreadId(long targetChatId, int threadId)
         {
             var s = _events.Where(e => e.TargetChatId == targetChatId).FirstOrDefault(e => e.ThreadId == threadId);
+            return s;
+        }
+
+        public Event? GetEventByPostId(long targetChatId, int postId)
+        {
+            var s = _events.Where(e => e.TargetChatId == targetChatId).FirstOrDefault(e => e.PostId == postId);
             return s;
         }
 
@@ -64,6 +70,11 @@ namespace EventRegistrator.Domain.Models
         {
             var events = _events.Where(e => e.TargetChatId == targetChatId).Reverse().ToList();
             return events;
+        }
+
+        public void RemoveEvent(Event @event)
+        {
+            _events.Remove(@event);
         }
 
         public void AddTargetChat(TargetChat chat)

@@ -2,8 +2,8 @@
 using EventRegistrator.Application.DTOs;
 using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Domain.DTO;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Domain.Models;
 using EventRegistrator.Infrastructure.Utils;
 
 namespace EventRegistrator.Application.Commands

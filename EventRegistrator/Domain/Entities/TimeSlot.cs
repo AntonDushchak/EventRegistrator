@@ -1,7 +1,7 @@
 ﻿using EventRegistrator.Infrastructure.Persistence;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     [Serializable]
     public class TimeSlot
@@ -116,5 +116,7 @@ namespace EventRegistrator.Domain.Models
         {
             return _currentRegistrations.FirstOrDefault(r => r.Name == name);
         }
+
+        public IReadOnlyCollection<Registration> GetRegistrations() => _currentRegistrations.AsReadOnly();
     }
 }

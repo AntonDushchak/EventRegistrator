@@ -1,7 +1,8 @@
 ﻿using EventRegistrator.Application.DTOs;
 using EventRegistrator.Domain.DTO;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Infrastructure.Utils;
 
 namespace EventRegistrator.Application.Services
 {
@@ -32,23 +33,114 @@ namespace EventRegistrator.Application.Services
             return new Event(message.Created.ToString(), message.Id, message.ChatId, hashtagName);
         }
 
-        public void EditTimeSlots(Event @event, string templateText)
+        public Event Transport(MessageDTO message, Event sourceEvent)
         {
+            if (!CanTransport(message, sourceEvent))
+                throw new InvalidOperationException("Невозможно перенести записи в новый ивент");
 
+            var newEvent = Create(message);
+
+            var newHashtag = ParseHashtagName(message.Text);
+
+            var hashtag = _userRepository.GetUserByTargetChat(sourceEvent.TargetChatId).GetTargetChat(sourceEvent.TargetChatId).GetHashtagByName(newHashtag);
+
+            var newSlots = TimeSlotParser.ExtractTimeSlotsFromTemplate(hashtag!.TemplateText);
+
+            foreach (var slot in newSlots)
+            {
+                newEvent.AddSlot(slot);
+            }
+
+            newEvent.UpdateTemplate(hashtag!.TemplateText);
+
+            var sourceSlots = sourceEvent.Slots.ToList();
+            var targetSlots = newEvent.Slots.ToList();
+
+            for (int i = 0; i < sourceSlots.Count && i < targetSlots.Count; i++)
+            {
+                var sourceSlot = sourceSlots[i];
+                var targetSlot = targetSlots[i];
+
+                if (sourceSlot.CurrentRegistrationCount > 0)
+                {
+                    var registrations = sourceSlot.GetRegistrations().ToList();
+
+                    foreach (var registration in registrations)
+                    {
+                        var newRegistration = new Registration(
+                            registration.UserId,
+                            registration.Name,
+                            targetSlot.Time,
+                            registration.MessageId
+                        );
+
+                        targetSlot.AddRegistration(newRegistration);
+                    }
+
+                    foreach (var registration in registrations)
+                    {
+                        sourceSlot.RemoveRegistration(registration);
+                    }
+                }
+            }
+
+            return newEvent;
+        }
+
+        public bool CanTransport(MessageDTO message, Event sourceEvent)
+        {
+            var newHashtag = ParseHashtagName(message.Text);
+            if (newHashtag == null || newHashtag == sourceEvent.HashtagName) return false;
+
+            var hashtag = _userRepository.GetUserByTargetChat(sourceEvent.TargetChatId).GetTargetChat(sourceEvent.TargetChatId).GetHashtagByName(newHashtag);
+
+            if (hashtag == null) return false;
+
+            var newSlots = TimeSlotParser.ExtractTimeSlotsFromTemplate(hashtag.TemplateText);
+            if (newSlots.Count == 0)
+                return false;
+
+            var sourceSlots = sourceEvent.Slots.ToList();
+
+            for (int i = 0; i < sourceSlots.Count; i++)
+            {
+                if (sourceSlots[i].CurrentRegistrationCount > 0 && i >= newSlots.Count)
+                {
+                    return false;
+                }
+
+                if (sourceSlots[i].CurrentRegistrationCount > 0 &&
+                    sourceSlots[i].CurrentRegistrationCount > newSlots[i].MaxCapacity)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static string ParseHashtagName(string text)
         {
-            ArgumentNullException.ThrowIfNull(text, nameof(text));
-            var lastPart = text.Split(
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            var lines = text.Split(
                 new[] { "\r\n", "\n", "\r" },
-                StringSplitOptions.None
-            ).Last();
-            if (lastPart == null || !lastPart.StartsWith(_hashtag))
+                StringSplitOptions.RemoveEmptyEntries
+            );
+
+            if (lines.Length == 0)
+                return null;
+
+            var lastLine = lines.Last().Trim();
+
+            if (!lastLine.StartsWith(_hashtag) || lastLine.Contains(' '))
             {
-                throw new ArgumentException("Нету диеза");
+                Console.WriteLine("Ошибка при парсинге хештега. Нету диеза");
+                return null;
             }
-            return lastPart.Trim(_hashtag);
+
+            return lastLine.Trim(_hashtag);
         }
     }
 }

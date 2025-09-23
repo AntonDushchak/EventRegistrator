@@ -1,11 +1,16 @@
 ﻿using EventRegistrator.Application.DTOs;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 
 namespace EventRegistrator.Application.Services
 {
     public class ResponseManager
     {
+        public Response CreatePrivateMessage(UserAdmin user, string text)
+        {
+            return new Response { ChatId = user.Id, Text = text };
+        }
+
         public List<Response> PrepareNotificationMessages(UserAdmin user, Event lastEvent)
         {
             var eventDataPrivateMessage = CreatePrivateEventSummaryMessage(user.PrivateChatId, lastEvent);

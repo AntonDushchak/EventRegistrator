@@ -231,7 +231,9 @@ namespace CommandTests.IntegrationTests
             // Проверяем наличие сообщения лайка для сообщения удаления
             var likeMessage = deleteResponse.FirstOrDefault(r => r.Like);
             Assert.That(likeMessage, Is.Not.Null, "Отсутствует сообщение лайка для сообщения удаления");
-            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(REGISTER_IVAN_MESSAGE_ID), "Неверный MessageId для лайка при удалении по ID");
+
+            Assert.That(unlikeMessage.MessageToEditId, Is.EqualTo(REGISTER_IVAN_MESSAGE_ID), "Неверный MessageId для удаление лайка при удалении по ID");
+            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(DELETE_BY_REPLY_MESSAGE_ID), "Неверный MessageId для лайка при удалении по ID");
 
             // Проверяем, что все регистрации Ивана удалены
             Assert.That(Event.Slots.All(s => !s.Contains("Иван")), Is.True, "Регистрации Ивана не удалены");

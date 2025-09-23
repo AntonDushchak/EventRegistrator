@@ -1,7 +1,7 @@
 ﻿using EventRegistrator.Domain.Interfaces;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     public class Hashtag : IPagiable
     {

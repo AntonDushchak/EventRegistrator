@@ -1,7 +1,7 @@
 ﻿using EventRegistrator.Infrastructure.Persistence;
 using Newtonsoft.Json;
 
-namespace EventRegistrator.Domain.Models
+namespace EventRegistrator.Domain.Entities
 {
     [Serializable]
     public class Registration

@@ -3,7 +3,7 @@ using EventRegistrator.Application.DTOs;
 using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Application.Services;
 using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
@@ -26,7 +26,7 @@ namespace EventRegistrator.Application.Commands
 
         public async Task<List<Response>> Execute(MessageDTO message, UserAdmin user)
         {
-            var @event = user.GetEvent(message.ChatId, message.ThreadId ?? 0);
+            var @event = user.GetEventByThreadId(message.ChatId, message.ThreadId ?? 0);
             if (@event == null)
             {
                 _logger.LogWarning("Событие не найдено: ChatId={ChatId}, ThreadId={ThreadId}", message.ChatId, message.ThreadId);

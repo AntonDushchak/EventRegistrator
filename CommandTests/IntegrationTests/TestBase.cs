@@ -1,8 +1,8 @@
 using EventRegistrator.Application.Commands;
 using EventRegistrator.Application.Services;
 using EventRegistrator.Domain.DTO;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Domain.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
 

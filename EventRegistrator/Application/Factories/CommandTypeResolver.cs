@@ -1,6 +1,6 @@
 ﻿using EventRegistrator.Application.Enums;
 using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 
 namespace EventRegistrator.Application.Factories
@@ -24,6 +24,8 @@ namespace EventRegistrator.Application.Factories
                 return message.Text;
             if (message.IsEdit && IsReplyToPostMessage(message, user))
                 return "EditRegistrations";
+            if (message.IsEdit && IsFromChannel(message, user) && IsHasHashtag(message, user))
+                return "EditEvent";
             if (IsFromChannel(message, user) && IsHasHashtag(message, user))
                 return "CreateEvent";
             if (message.Text.EndsWith('?'))
@@ -39,15 +41,24 @@ namespace EventRegistrator.Application.Factories
 
         private static bool IsHasHashtag(MessageDTO message, UserAdmin user)
         {
-            var lastPart = message.Text.Split(
+            if (string.IsNullOrWhiteSpace(message.Text))
+                return false;
+
+            var lines = message.Text.Split(
                 new[] { "\r\n", "\n", "\r" },
-                StringSplitOptions.None
-            ).Last();
-            if (user.ContainsHashtag(lastPart.Trim(_hashtag)))
-            {
-                return true;
-            }
-            return false;
+                StringSplitOptions.RemoveEmptyEntries
+            );
+
+            if (lines.Length == 0)
+                return false;
+
+            var lastLine = lines.Last().Trim();
+
+            if (!lastLine.StartsWith(_hashtag) || lastLine.Contains(' '))
+                return false;
+
+            string hashtagName = lastLine.TrimStart(_hashtag);
+            return !string.IsNullOrEmpty(hashtagName) && user.ContainsHashtag(hashtagName);
         }
 
         private static bool IsFromChannel(MessageDTO message, UserAdmin user)

@@ -21,13 +21,13 @@ namespace EventRegistrator.Infrastructure.Telegram
         {
             try
             {
-                _logger.LogInformation("Отправка сообщения в чат {ChatId}: {TextPreview}, EditId: {EditId}, ReplyId: {ReplyId}, HasButtons: {HasButtons}, IsReaction: {IsReaction}",
-                    message.ChatId,
-                    message.Text?.Length > 30 ? message.Text.Substring(0, 30) + "..." : message.Text,
-                    message.MessageToEditId,
-                    message.MessageToReplyId,
-                    message.ButtonData != null,
-                    message.Like || message.UnLike);
+                //_logger.LogInformation("Отправка сообщения в чат {ChatId}: {TextPreview}, EditId: {EditId}, ReplyId: {ReplyId}, HasButtons: {HasButtons}, IsReaction: {IsReaction}",
+                //    message.ChatId,
+                //    message.Text?.Length > 30 ? message.Text.Substring(0, 30) + "..." : message.Text,
+                //    message.MessageToEditId,
+                //    message.MessageToReplyId,
+                //    message.ButtonData != null,
+                //    message.Like || message.UnLike);
                 
                 if (message.Like || message.UnLike)
                 {

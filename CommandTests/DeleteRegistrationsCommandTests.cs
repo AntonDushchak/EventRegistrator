@@ -2,7 +2,7 @@ using EventRegistrator.Application.Commands;
 using EventRegistrator.Application.DTOs;
 using EventRegistrator.Application.Services;
 using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Models;
+using EventRegistrator.Domain.Entities;
 using Moq;
 
 namespace CommandTests
