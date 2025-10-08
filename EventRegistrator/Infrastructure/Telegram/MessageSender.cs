@@ -54,7 +54,7 @@ namespace EventRegistrator.Infrastructure.Telegram
             catch(Exception ex)
             {
                 _logger.LogError(ex, "Failed to send message to chat {ChatId}", message.ChatId);
-                throw;
+                return new Message();
             }
         }
 

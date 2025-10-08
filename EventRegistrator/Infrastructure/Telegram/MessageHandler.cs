@@ -53,7 +53,16 @@ namespace EventRegistrator.Infrastructure.Telegram
 
                     var sentMessage = await _messageSender.SendMessage(message);
 
+                    if (sentMessage.MessageId == default)
+                    {
+                        continue;
+                    }
                     saveMessageIdCallback?.Invoke(sentMessage.MessageId);
+                    if (sentMessage.MessageThreadId == default)
+                    {
+                        continue;
+                    }
+                    
                     saveMessageThreadIdCallback?.Invoke(sentMessage.MessageThreadId ?? 0);
                 }
                 catch (Exception ex)

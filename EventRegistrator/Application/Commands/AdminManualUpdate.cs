@@ -39,7 +39,7 @@ namespace EventRegistrator.Application.Commands
                     foreach (var reg in regs)
                     {
                         
-                        response.Add(_responseManager.CreateLikeMessage(-1001338258069, reg.MessageId));
+                        //response.Add(_responseManager.CreateLikeMessage(-1001338258069, reg.MessageId));
                     }
                 }
             }
