@@ -16,6 +16,7 @@ namespace EventRegistrator.Infrastructure.Telegram
                 UserId = message.From?.Id,
                 ReplyToMessageId = message.ReplyToMessage?.Id,
                 Created = message.Date.Add(_timeZoneOffset),
+                //IsFromAdmin = message.From.
             };
 
             if (messageDto.ReplyToMessageId != null)

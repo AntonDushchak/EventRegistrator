@@ -1,14 +1,13 @@
 ﻿using EventRegistrator.Domain.DTO;
 using EventRegistrator.Domain.Entities;
-using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace EventRegistrator.Infrastructure.Utils
 {
     public static class TimeSlotParser
     {
-        private static readonly Regex TokenSplit = new Regex(@"[\s,;]+");
-        private static readonly Regex SlotOrTimePattern = new Regex(@"^\d{1,2}(:\d{2})?[\.\)]?$"); // 1  1.  1)  10:00 10:00.
+        private static readonly Regex TokenSplit = new Regex(@"[\s,]+");
+        private static readonly Regex SlotOrTimePattern = new Regex(@"^\d{1,2}([:.;]\d{2})?[\.\)]?$");
         private static readonly Regex TemplateRegex = new Regex(@"(?:.*?)(\d{1,2}[:\.]\d{2})\s*[-–]\s*(\d+)\s+вільних місць", RegexOptions.Compiled);
 
         public static List<TimeSlot> ExtractTimeSlotsFromTemplate(string templateText)
@@ -79,7 +78,8 @@ namespace EventRegistrator.Infrastructure.Utils
             var result = new List<Registration>();
             if (string.IsNullOrWhiteSpace(message.Text)) return result;
 
-            var tokens = TokenSplit.Split(message.Text.Trim());
+            var preprocessedText = PreprocessText(message.Text.Trim());
+            var tokens = TokenSplit.Split(preprocessedText);
             int i = 0;
 
             while (i < tokens.Length)
@@ -87,9 +87,17 @@ namespace EventRegistrator.Infrastructure.Utils
                 if (string.IsNullOrWhiteSpace(tokens[i])) { i++; continue; }
 
                 var nameParts = new List<string>();
+
                 while (i < tokens.Length && !IsSlotToken(tokens[i]) && tokens[i] != "+")
                 {
                     var token = tokens[i];
+
+                    if (IsNameTimeSeparator(token))
+                    {
+                        i++;
+                        break;
+                    }
+
                     if (token.EndsWith("+") && token.Length > 1)
                     {
                         nameParts.Add(token.Substring(0, token.Length - 1));
@@ -109,9 +117,9 @@ namespace EventRegistrator.Infrastructure.Utils
                     continue;
                 }
 
-                var name = string.Join(" ", nameParts);
-
+                var name = string.Join(" ", nameParts).Trim();
                 bool anySlot = false;
+
                 while (i < tokens.Length && (IsSlotToken(tokens[i]) || tokens[i] == "+"))
                 {
                     var slotToken = tokens[i++];
@@ -136,10 +144,22 @@ namespace EventRegistrator.Infrastructure.Utils
             return result;
         }
 
+        private static string PreprocessText(string text)
+        {
+            return Regex.Replace(text, @"(\d+),(\d{2})", "$1_INVALID_$2");
+        }
+
         private static bool IsSlotToken(string token)
         {
             if (string.IsNullOrWhiteSpace(token)) return false;
             return SlotOrTimePattern.IsMatch(token.Trim());
+        }
+
+        private static bool IsNameTimeSeparator(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token)) return false;
+            var trimmed = token.Trim();
+            return trimmed == "-" || trimmed == "—" || trimmed == "–" || trimmed == ":";
         }
 
         private static bool TryResolveSlotToken(string token, Dictionary<int, TimeSpan> slotMap, out TimeSpan time)
@@ -147,7 +167,7 @@ namespace EventRegistrator.Infrastructure.Utils
             time = default;
             if (string.IsNullOrWhiteSpace(token)) return false;
 
-            var t = token.Trim().TrimEnd('.', ')');
+            var t = token.Trim().TrimEnd('.', ')', ';');
 
             if (int.TryParse(t, out int slot) && slotMap != null && slotMap.TryGetValue(slot, out TimeSpan slotTime))
             {
@@ -155,13 +175,20 @@ namespace EventRegistrator.Infrastructure.Utils
                 return true;
             }
 
-            if (TimeSpan.TryParse(t.Replace('.', ':'), out TimeSpan ts))
+            var normalizedTime = NormalizeTimeString(t);
+
+            if (TimeSpan.TryParse(normalizedTime, out TimeSpan ts))
             {
                 time = ts;
                 return true;
             }
 
             return false;
+        }
+
+        private static string NormalizeTimeString(string timeStr)
+        {
+            return timeStr.Replace('.', ':').Replace(';', ':');
         }
 
         public static TimeSlot FindMatchingTimeSlot(IReadOnlyCollection<TimeSlot> timeSlots, Registration registration)

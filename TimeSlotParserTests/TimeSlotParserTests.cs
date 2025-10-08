@@ -104,7 +104,7 @@ namespace TimeSlotParserTests
             Assert.That(result[0].RegistrationOnTime, Is.EqualTo(new TimeSpan(10, 0, 0)));
             Assert.That(result[1].RegistrationOnTime, Is.EqualTo(new TimeSpan(11, 0, 0)));
 
-
+        }
         [Test]
         public void ParseRegistrationMessage_MixedNamesAndTimes_ReturnsCorrectRegistrations()
         {
@@ -192,6 +192,126 @@ namespace TimeSlotParserTests
             Assert.That(result.Count, Is.EqualTo(1));
             Assert.That(result[0].Name, Is.EqualTo("Karlenko"));
             Assert.That(result[0].RegistrationOnTime, Is.EqualTo(new TimeSpan(10, 0, 0)));
+        }
+        [Test]
+        public void ParseRegistrationMessage_DifferentTimeDelimiters_ShouldWork()
+        {
+            // Arrange
+            var messageText = "Тест1 10:00\nТест2 10.00\nТест3 10;00";
+            var message = CreateMessage(messageText, 123456789, new DateTime(2025, 8, 8));
+
+            // Act
+            var result = TimeSlotParser.ParseRegistrationMessage(message, _slotMap);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(3));
+
+            // Все форматы должны давать одинаковое время
+            var expectedTime = new TimeSpan(10, 0, 0);
+            Assert.That(result[0].Name, Is.EqualTo("Тест1"));
+            Assert.That(result[0].RegistrationOnTime, Is.EqualTo(expectedTime));
+            Assert.That(result[1].Name, Is.EqualTo("Тест2"));
+            Assert.That(result[1].RegistrationOnTime, Is.EqualTo(expectedTime));
+            Assert.That(result[2].Name, Is.EqualTo("Тест3"));
+            Assert.That(result[2].RegistrationOnTime, Is.EqualTo(expectedTime));
+        }
+
+        [Test]
+        public void ParseRegistrationMessage_CommaAsDelimiter_ShouldNotWork()
+        {
+            // Arrange
+            var messageText = "Тест 10,00";
+            var message = CreateMessage(messageText, 123456789, new DateTime(2025, 8, 8));
+
+            // Act
+            var result = TimeSlotParser.ParseRegistrationMessage(message, _slotMap);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(0), "Время с запятой в качестве разделителя не должно распознаваться");
+        }
+
+        [Test]
+        public void ParseRegistrationMessage_NameWithDashBeforeTime_ShouldWork()
+        {
+            // Arrange
+            var messageText = "Тест - 10:00";
+            var message = CreateMessage(messageText, 123456789, new DateTime(2025, 8, 8));
+
+            // Act
+            var result = TimeSlotParser.ParseRegistrationMessage(message, _slotMap);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].Name, Is.EqualTo("Тест"));
+            Assert.That(result[0].RegistrationOnTime, Is.EqualTo(new TimeSpan(10, 0, 0)));
+        }
+
+        [Test]
+        public void ParseRegistrationMessage_NameWithDifferentSeparators_ShouldWork()
+        {
+            // Arrange
+            var messageText = "Тест1 - 10:00\nТест2 : 10:00\nТест3 — 10:00\nТест4 – 10:00";
+            var message = CreateMessage(messageText, 123456789, new DateTime(2025, 8, 8));
+
+            // Act
+            var result = TimeSlotParser.ParseRegistrationMessage(message, _slotMap);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(4));
+
+            var expectedTime = new TimeSpan(10, 0, 0);
+            Assert.That(result[0].Name, Is.EqualTo("Тест1"));
+            Assert.That(result[0].RegistrationOnTime, Is.EqualTo(expectedTime));
+            Assert.That(result[1].Name, Is.EqualTo("Тест2"));
+            Assert.That(result[1].RegistrationOnTime, Is.EqualTo(expectedTime));
+            Assert.That(result[2].Name, Is.EqualTo("Тест3"));
+            Assert.That(result[2].RegistrationOnTime, Is.EqualTo(expectedTime));
+            Assert.That(result[3].Name, Is.EqualTo("Тест4"));
+            Assert.That(result[3].RegistrationOnTime, Is.EqualTo(expectedTime));
+        }
+
+        [Test]
+        public void ParseRegistrationMessage_MixedDelimitersInMultipleRegistrations_ShouldWork()
+        {
+            // Arrange
+            var messageText = "Тест1 10:00 11.00\nТест2 10;00 12:00";
+            var message = CreateMessage(messageText, 123456789, new DateTime(2025, 8, 8));
+
+            // Act
+            var result = TimeSlotParser.ParseRegistrationMessage(message, _slotMap);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(4));
+
+            Assert.That(result[0].Name, Is.EqualTo("Тест1"));
+            Assert.That(result[0].RegistrationOnTime, Is.EqualTo(new TimeSpan(10, 0, 0)));
+            Assert.That(result[1].Name, Is.EqualTo("Тест1"));
+            Assert.That(result[1].RegistrationOnTime, Is.EqualTo(new TimeSpan(11, 0, 0)));
+
+            Assert.That(result[2].Name, Is.EqualTo("Тест2"));
+            Assert.That(result[2].RegistrationOnTime, Is.EqualTo(new TimeSpan(10, 0, 0)));
+            Assert.That(result[3].Name, Is.EqualTo("Тест2"));
+            Assert.That(result[3].RegistrationOnTime, Is.EqualTo(new TimeSpan(12, 0, 0)));
+        }
+
+        [Test]
+        public void ParseRegistrationMessage_PlusSymbolWithMultipleSlots_ShouldNotRegister()
+        {
+            // Arrange
+            // Используем обычный _slotMap, в котором больше одного слота
+            var message = CreateMessage("Тест+", 123456789, new DateTime(2025, 8, 8));
+
+            // Act
+            var result = TimeSlotParser.ParseRegistrationMessage(message, _slotMap);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(0), "Символ + не должен регистрировать пользователя, когда доступно более одного слота");
         }
     }
 }

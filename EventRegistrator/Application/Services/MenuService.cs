@@ -134,7 +134,7 @@ namespace EventRegistrator.Application.Services
                     foreach (var slot in @event.Slots.OrderBy(s => s.Time))
                     {
                         var timeStr = slot.Time.ToString(@"hh\:mm");
-                        var registrations = TextFormatter.GetRegistrationsFromTimeSlot(slot);
+                        var registrations = slot.GetRegistrations();
 
                         foreach (var reg in registrations)
                         {
