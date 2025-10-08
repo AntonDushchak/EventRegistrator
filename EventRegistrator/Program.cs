@@ -159,10 +159,10 @@ namespace EventRegistrator
             });
             var loader = new RepositoryLoader(EnvLoader.GetDataPath());
             var userRepository = loader.LoadData();
-            //EnvLoader.LoadDefaultUser1(userRepository);
-            //EnvLoader.LoadDefaultUser2(userRepository);
-            //EnvLoader.LoadDefaultUser3(userRepository);
-            //loader.SaveDataAsync(userRepository);
+            EnvLoader.LoadDefaultUser1(userRepository);
+            EnvLoader.LoadDefaultUser2(userRepository);
+            EnvLoader.LoadDefaultUser3(userRepository);
+            loader.SaveDataAsync(userRepository);
             //userRepository.Clear();
             services.AddSingleton(loader);
 
