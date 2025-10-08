@@ -23,7 +23,7 @@ namespace EventRegistrator.Infrastructure.Utils
             {
                 sb.AppendLine($"{slot.Time.ToString(@"hh\:mm")}     {slot.CurrentRegistrationCount} / {slot.MaxCapacity}");
 
-                var registrations = GetRegistrationsFromTimeSlot(slot);
+                var registrations = slot.GetRegistrations();
 
                 if (registrations.Any())
                 {
@@ -37,20 +37,6 @@ namespace EventRegistrator.Infrastructure.Utils
             }
 
             return sb.ToString();
-        }
-
-        public static List<Registration> GetRegistrationsFromTimeSlot(TimeSlot slot)
-        {
-            var registrationsField = typeof(TimeSlot).GetField("_currentRegistrations",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-            if (registrationsField != null)
-            {
-                var registrations = registrationsField.GetValue(slot) as List<Registration>;
-                return registrations ?? new List<Registration>();
-            }
-
-            return new List<Registration>();
         }
 
         public static string GetAllUsersInfo(UserRepository userRepository)
@@ -93,7 +79,7 @@ namespace EventRegistrator.Infrastructure.Utils
                             sb.AppendLine($"    Временные слоты ({slots.Count}):");
                             foreach (var slot in slots.OrderBy(s => s.Time))
                             {
-                                var regs = GetRegistrationsFromTimeSlot(slot);
+                                var regs = slot.GetRegistrations();
                                 sb.AppendLine($"      - {slot.Time.ToString(@"hh\:mm")} (Занято: {slot.CurrentRegistrationCount}/{slot.MaxCapacity})");
                                 
                                 if (regs.Any())

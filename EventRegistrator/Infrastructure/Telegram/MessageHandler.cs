@@ -45,9 +45,16 @@ namespace EventRegistrator.Infrastructure.Telegram
             {
                 try
                 {
+                    var saveMessageIdCallback = message.SaveMessageIdCallback;
+                    var saveMessageThreadIdCallback = message.SaveMessageThreadIdCallback;
+
+                    message.SaveMessageIdCallback = null;
+                    message.SaveMessageThreadIdCallback = null;
+
                     var sentMessage = await _messageSender.SendMessage(message);
-                    message.SaveMessageIdCallback?.Invoke(sentMessage.MessageId);
-                    message.SaveMessageThreadIdCallback?.Invoke(sentMessage.MessageThreadId ?? 0);
+
+                    saveMessageIdCallback?.Invoke(sentMessage.MessageId);
+                    saveMessageThreadIdCallback?.Invoke(sentMessage.MessageThreadId ?? 0);
                 }
                 catch (Exception ex)
                 {

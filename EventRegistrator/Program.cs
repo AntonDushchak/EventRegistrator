@@ -63,7 +63,20 @@ namespace EventRegistrator
 
                 services.AddLogging(b => b.ClearProviders().AddSerilog(dispose: true));
 
-                var bot = new TelegramBotClient(apiToken);
+
+                var httpHandler = new SocketsHttpHandler
+                {
+                    PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                    MaxConnectionsPerServer = 20,
+                    SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                    {
+                        CertificateRevocationCheckMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck,
+                    }
+                };
+
+                var httpClient = new HttpClient(httpHandler);
+                var bot = new TelegramBotClient(apiToken, httpClient);
+
                 services.AddSingleton<ITelegramBotClient>(bot);
 
                 RegisterAppServices(services);
@@ -75,6 +88,7 @@ namespace EventRegistrator
 
                 if (env == "Development")
                 {
+                    await bot.DeleteWebhook();
                     await RunPolling(bot, botHandler);
                 }
                 else
