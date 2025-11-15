@@ -8,7 +8,6 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS debug
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Установить dotnet-dump
 RUN dotnet tool install -g dotnet-dump
 ENV PATH="${PATH}:/root/.dotnet/tools"
 

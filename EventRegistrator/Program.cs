@@ -26,6 +26,10 @@ namespace EventRegistrator
         private static readonly object _saveLock = new();
         private static bool _isSaving = false;
         private static readonly TimeSpan SaveInterval = TimeSpan.FromHours(6);
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern IntPtr GetConsoleWindow();
@@ -285,10 +289,7 @@ namespace EventRegistrator
 
                     try 
                     {
-                        var update = JsonSerializer.Deserialize<Update>(body, new JsonSerializerOptions 
-                        { 
-                            PropertyNameCaseInsensitive = true 
-                        });
+                        var update = JsonSerializer.Deserialize<Update>(body, _jsonOptions);
                         
                         if (update != null)
                         {

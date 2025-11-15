@@ -33,3 +33,5 @@ Event Registrator is a .NET 8 service that automates attendee registration via a
 - **Run the container**: `docker run --rm -e API_TOKEN=... -e WEBHOOK_URL=... -e DATA_PATH=/app/data/data.json -v $(pwd)/data:/app/data event-registrator`.
 - **Environment variables**: mirror the `.env` values; the bot uses polling or webhook depending on the provided variables.
 - **Persistent storage**: mount a volume to the path from `DATA_PATH` to keep registrations between restarts.
+
+
