@@ -159,7 +159,7 @@ namespace EventRegistrator.Application.Services
                 {
                     var participant = (ParticipantItem)ip;
 
-                    return new RunCommand((message, user) => {
+                    return new RunCommand(async (message, user) => {
                         var responseManager = new ResponseManager();
                         var registrationService = new RegistrationService();
                         var command = new DeleteReigstrationsByNameCommand(responseManager, registrationService);
@@ -173,11 +173,11 @@ namespace EventRegistrator.Application.Services
                             Id = message.Id
                         };
 
-                        var deleteResponses = command.Execute(deleteMessage, user).Result;
+                        var deletedResponses = await command.Execute(deleteMessage, user);
                         user.SetCurrentState(new MenuState(this, MenuKey.List, user.CurrentContext, 0));
-                        var updatedResponse = user.State.Handle(message, user).Result;
-                        deleteResponses.Add(updatedResponse);
-                        return Task.FromResult(deleteResponses);
+                        var updatedResponse = await user.State.Handle(message, user);
+                        deletedResponses.Add(updatedResponse);
+                        return deletedResponses;
                     });
                 }
             ),
