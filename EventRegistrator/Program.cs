@@ -144,8 +144,8 @@ namespace EventRegistrator
         private static async Task RunWebhook(ITelegramBotClient bot, BotHandler handler, string webhookUrl)
         {
             using var cts = new CancellationTokenSource();
-
             Log.Information("Setting webhook to {Url}", webhookUrl);
+
             await bot.SetWebhook(webhookUrl);
 
             var listener = new HttpListener();
@@ -157,7 +157,6 @@ namespace EventRegistrator
             StartPeriodicSaving(cts.Token);
             var httpTask = HandleHttp(listener, bot, handler, cts.Token);
             var shutdownTask = WaitForShutdown(cts);
-
             await Task.WhenAny(httpTask, shutdownTask);
 
             try { listener.Stop(); } catch { /* ignore */ }
@@ -173,6 +172,8 @@ namespace EventRegistrator
             //userRepository.Clear();
             var loader = new RepositoryLoader(EnvLoader.GetDataPath());
             var userRepository = loader.LoadData();
+            _loader = loader;
+            _userRepository = userRepository;
 
             services.AddSingleton(loader);
             services.AddSingleton<IUserRepository>(userRepository);
