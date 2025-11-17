@@ -186,6 +186,7 @@ namespace EventRegistrator
             services.AddSingleton<IStateFactory, StateFactory>();
             services.AddSingleton<IMenuStateFactory, MenuStateFactory>();
             services.AddSingleton<StateFactory>();
+            services.AddSingleton<IMenuService, MenuService>();
 
             services.AddSingleton<PrivateMessageHandler>();
             services.AddSingleton<TargetChatMessageHandler>();
