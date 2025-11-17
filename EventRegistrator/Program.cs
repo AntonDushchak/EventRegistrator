@@ -20,75 +20,50 @@ namespace EventRegistrator
 {
     internal class Program
     {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GetConsoleWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_SHOWWINDOW = 0x0040;
+        private static readonly IntPtr HWND_TOPMOST = new(-1);
+
+        private static readonly object _saveLock = new();
+        private static bool _isSaving = false;
+        private static readonly TimeSpan _saveInterval = TimeSpan.FromHours(6);
+        private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
         private static Timer _saveTimer;
         private static UserRepository _userRepository;
         private static RepositoryLoader _loader;
-        private static readonly object _saveLock = new();
-        private static bool _isSaving = false;
-        private static readonly TimeSpan SaveInterval = TimeSpan.FromHours(6);
-        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern IntPtr GetConsoleWindow();
-
-        [DllImport("user32.dll", SetLastError = true)]
-        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        const uint SWP_NOSIZE = 0x0001;
-        const uint SWP_NOZORDER = 0x0004;
-        const uint SWP_SHOWWINDOW = 0x0040;
-        static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        
         static async Task Main(string[] args)
         {
             DotNetEnv.Env.Load();
 
             var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-
-            var loggerConfig = new LoggerConfiguration()
-                .Enrich.FromLogContext()
-                .WriteTo.Console();
-
-            if (env == "Development")
-                loggerConfig = loggerConfig.WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day);
-
-            Log.Logger = loggerConfig.CreateLogger();
+            ConfigureLogging(env);
 
             try
             {
                 Log.Information("Starting application (env: {Env})", env);
 
-                var apiToken = Environment.GetEnvironmentVariable("API_TOKEN")
-                    ?? throw new InvalidOperationException("API_TOKEN not set");
+                var apiToken = GetRequiredEnv("API_TOKEN");
 
                 var services = new ServiceCollection();
-
                 services.AddLogging(b => b.ClearProviders().AddSerilog(dispose: true));
 
-
-                var httpHandler = new SocketsHttpHandler
-                {
-                    PooledConnectionLifetime = TimeSpan.FromMinutes(15),
-                    MaxConnectionsPerServer = 20,
-                    SslOptions = new System.Net.Security.SslClientAuthenticationOptions
-                    {
-                        CertificateRevocationCheckMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck,
-                    }
-                };
-
-                var httpClient = new HttpClient(httpHandler);
-                var bot = new TelegramBotClient(apiToken, httpClient);
-
-                services.AddSingleton<ITelegramBotClient>(bot);
-
+                ConfigureBotClient(services, apiToken);
                 RegisterAppServices(services);
 
                 var sp = services.BuildServiceProvider();
-                var messageHandler = sp.GetRequiredService<MessageHandler>();
-                var callbackQueryHandler = sp.GetRequiredService<CallbackQueryHandler>();
-                var botHandler = new BotHandler(messageHandler, callbackQueryHandler);
+
+                var bot = sp.GetRequiredService<ITelegramBotClient>();
+                var botHandler = new BotHandler(
+                    sp.GetRequiredService<MessageHandler>(), 
+                    sp.GetRequiredService<CallbackQueryHandler>());
 
                 if (env == "Development")
                 {
@@ -97,8 +72,7 @@ namespace EventRegistrator
                 }
                 else
                 {
-                    var webhookUrl = Environment.GetEnvironmentVariable("WEBHOOK_URL")
-                        ?? throw new InvalidOperationException("WEBHOOK_URL not set");
+                    var webhookUrl = GetRequiredEnv("WEBHOOK_URL");
                     await RunWebhook(bot, botHandler, webhookUrl);
                 }
             }
@@ -110,6 +84,41 @@ namespace EventRegistrator
             {
                 Log.CloseAndFlush();
             }
+        }
+
+        private static string GetRequiredEnv(string key) => 
+            Environment.GetEnvironmentVariable(key)
+            ?? throw new InvalidOperationException($"{key} not set");
+
+
+        private static void ConfigureBotClient(ServiceCollection services, string apiToken)
+        {
+            var handler = new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                MaxConnectionsPerServer = 20,
+                SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                {
+                    CertificateRevocationCheckMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck
+                }
+            };
+
+            var httpClient = new HttpClient(handler);
+            var bot = new TelegramBotClient(apiToken, httpClient);
+
+            services.AddSingleton<ITelegramBotClient>(bot);
+        }
+
+        private static void ConfigureLogging(string env)
+        {
+            var cfg = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Console();
+
+            if (env == "Development")
+                cfg.WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day);
+
+            Log.Logger = cfg.CreateLogger();
         }
 
         private static void MoveConsoleToSecondMonitor()
@@ -135,8 +144,8 @@ namespace EventRegistrator
         private static async Task RunWebhook(ITelegramBotClient bot, BotHandler handler, string webhookUrl)
         {
             using var cts = new CancellationTokenSource();
-            Log.Information("Setting webhook to {Url}", webhookUrl);
 
+            Log.Information("Setting webhook to {Url}", webhookUrl);
             await bot.SetWebhook(webhookUrl);
 
             var listener = new HttpListener();
@@ -148,6 +157,7 @@ namespace EventRegistrator
             StartPeriodicSaving(cts.Token);
             var httpTask = HandleHttp(listener, bot, handler, cts.Token);
             var shutdownTask = WaitForShutdown(cts);
+
             await Task.WhenAny(httpTask, shutdownTask);
 
             try { listener.Stop(); } catch { /* ignore */ }
@@ -156,25 +166,17 @@ namespace EventRegistrator
 
         private static void RegisterAppServices(ServiceCollection services)
         {
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.AddSerilog();
-            });
-            var loader = new RepositoryLoader(EnvLoader.GetDataPath());
-            var userRepository = loader.LoadData();
             //EnvLoader.LoadDefaultUser1(userRepository);
             //EnvLoader.LoadDefaultUser2(userRepository);
             //EnvLoader.LoadDefaultUser3(userRepository);
             //loader.SaveDataAsync(userRepository);
             //userRepository.Clear();
+            var loader = new RepositoryLoader(EnvLoader.GetDataPath());
+            var userRepository = loader.LoadData();
+
             services.AddSingleton(loader);
-
-            _userRepository = userRepository;
-            _loader = loader;
-
             services.AddSingleton<IUserRepository>(userRepository);
-            services.AddSingleton(userRepository);
+
             services.AddSingleton<MessageSender>();
             services.AddSingleton<EventService>();
             services.AddSingleton<RegistrationService>();
@@ -185,23 +187,26 @@ namespace EventRegistrator
 
             services.AddSingleton<IStateFactory, StateFactory>();
             services.AddSingleton<IMenuStateFactory, MenuStateFactory>();
-            services.AddSingleton<StateFactory>();
             services.AddSingleton<IMenuService, MenuService>();
 
             services.AddSingleton<PrivateMessageHandler>();
             services.AddSingleton<TargetChatMessageHandler>();
             services.AddSingleton<GeneralCallbackQueryHandler>();
+
             services.AddSingleton<UpdateRouter>(sp =>
                 new UpdateRouter(
-                    new IHandler[] {
-                        sp.GetRequiredService<PrivateMessageHandler>(),
-                        sp.GetRequiredService<TargetChatMessageHandler>()
+                    new IHandler[]
+                    {
+                sp.GetRequiredService<PrivateMessageHandler>(),
+                sp.GetRequiredService<TargetChatMessageHandler>()
                     },
-                    new IHandler[] {
-                        sp.GetRequiredService<GeneralCallbackQueryHandler>(),
+                    new IHandler[]
+                    {
+                sp.GetRequiredService<GeneralCallbackQueryHandler>()
                     },
                     sp.GetRequiredService<ILogger<UpdateRouter>>()
                 ));
+
             services.AddSingleton<MessageHandler>();
             services.AddSingleton<CallbackQueryHandler>();
         }
@@ -232,7 +237,7 @@ namespace EventRegistrator
                 {
                     _isSaving = false;
                 }
-            }, null, TimeSpan.Zero, SaveInterval);
+            }, null, TimeSpan.Zero, _saveInterval);
 
             token.Register(async () =>
             {
