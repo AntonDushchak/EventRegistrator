@@ -130,8 +130,8 @@ namespace EventRegistrator.Application.Services
                 {
                     var @event = _userRepository.GetUserByTargetChat(ctx.TargetChatId.Value).GetEvent(ctx.EventId.Value);
                     var participants = new List<ParticipantItem>();
-
-                    foreach (var slot in @event.Slots.OrderBy(s => s.Time))
+                    var slotList = @event.Slots.OrderBy(s => s.Time).ToList();
+                    foreach (var slot in slotList)
                     {
                         var timeStr = slot.Time.ToString(@"hh\:mm");
                         var registrations = slot.GetRegistrations();
