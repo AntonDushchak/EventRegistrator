@@ -41,7 +41,9 @@ namespace EventRegistrator.Infrastructure.Telegram
 
         private async Task ProcessMessagesAsync(List<Response> messages)
         {
-            foreach (var message in messages)
+            var messagesList = messages.ToList();
+
+            await Task.WhenAll(messagesList.Select(async message =>
             {
                 try
                 {
@@ -53,26 +55,22 @@ namespace EventRegistrator.Infrastructure.Telegram
 
                     var sentMessage = await _messageSender.SendMessage(message);
 
-                    if (sentMessage.MessageId == default)
+                    if (sentMessage.MessageId != default)
                     {
-                        continue;
-                    }
-                    saveMessageIdCallback?.Invoke(sentMessage.MessageId);
-                    if (sentMessage.MessageThreadId == default)
-                    {
-                        continue;
+                        saveMessageIdCallback?.Invoke(sentMessage.MessageId);
                     }
                     
-                    saveMessageThreadIdCallback?.Invoke(sentMessage.MessageThreadId ?? 0);
+                    if (sentMessage.MessageThreadId != default)
+                    {
+                        saveMessageThreadIdCallback?.Invoke(sentMessage.MessageThreadId ?? 0);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    // Логируем ошибку, чтобы не падал весь цикл
-                    // Можно использовать ваш логгер, если он есть
                     Console.WriteLine($"Ошибка при отправке сообщения: {ex}");
                     Console.WriteLine($"Данные сообщения: ChatId={message.ChatId}, Text={message.Text}, MessageToEditId={message.MessageToEditId}, MessageToReplyId={message.MessageToReplyId}, Like={message.Like}, UnLike={message.UnLike}");
                 }
-            }
+            }));
         } 
     }
 }
