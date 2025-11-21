@@ -23,6 +23,9 @@ namespace EventRegistrator.Application.Factories
             return stateType switch
             {
                 StateType.EditTemplateText => new EditTemplateTextState(_responseManager),
+                StateType.AddChat => new AddChatState(),
+                StateType.AddHashtag => new AddHashtagState(),
+
                 _ => throw new ArgumentException($"Неизвестный тип состояния: {stateType}")
             };
         }

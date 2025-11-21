@@ -1,8 +1,6 @@
 ﻿using EventRegistrator.Application.Commands.Attributes;
 using EventRegistrator.Application.DTOs;
-using EventRegistrator.Application.Enums;
 using EventRegistrator.Application.Interfaces;
-using EventRegistrator.Domain;
 using EventRegistrator.Domain.DTO;
 using EventRegistrator.Domain.Entities;
 
@@ -20,7 +18,7 @@ namespace EventRegistrator.Application.Commands
 
         public async Task<List<Response>> Execute(MessageDTO message, UserAdmin user)
         {
-            var state = new StartMenuCommand(_menuStateFactory, MenuKey.Hashtags);
+            var state = new StartMenuCommand(_menuStateFactory);
             user.LastMessageId = null;
             user.ClearStateHistory();
             var response = await state.Execute(message, user);

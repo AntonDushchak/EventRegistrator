@@ -7,10 +7,12 @@ namespace EventRegistrator.Application.Factories
     public class MenuStateFactory : IMenuStateFactory
     {
         private readonly IMenuService _menuService;
+        private readonly IStateFactory _stateFactory;
 
-        public MenuStateFactory(IMenuService menuService)
+        public MenuStateFactory(IMenuService menuService, IStateFactory stateFactory)
         {
             _menuService = menuService;
+            _stateFactory = stateFactory;
         }
 
         public MenuState Create(MenuKey key, MenuContext ctx, int startPage = 0)
@@ -19,6 +21,7 @@ namespace EventRegistrator.Application.Factories
                 menuService: _menuService,
                 key: key,
                 ctx: ctx,
+                stateFactory: _stateFactory,
                 startPage: startPage
             );
         }

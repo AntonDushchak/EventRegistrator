@@ -12,7 +12,7 @@ namespace EventRegistrator.Application.Commands
     {
         private readonly MenuKey _key;
         private readonly IMenuStateFactory _menuStateFactory;
-        public StartMenuCommand(IMenuStateFactory menuStateFactory, MenuKey key)
+        public StartMenuCommand(IMenuStateFactory menuStateFactory, MenuKey key = MenuKey.Hashtags)
         {
             _menuStateFactory = menuStateFactory;
             _key = key;

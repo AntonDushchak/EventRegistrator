@@ -14,16 +14,8 @@ namespace EventRegistrator.Application.Enums
         Guid? EventId = null);
 
     public record NavigateMenu(MenuKey NextKey, MenuContext Ctx, int StartPage = 0) : MenuAction;
-    public record SwitchState(Func<IState> Factory) : MenuAction;
+    public record SwitchState(StateType StateType) : MenuAction;
     public record RunCommand(Func<MessageDTO, UserAdmin, Task<List<Response>>> Action) : MenuAction;
     public record Noop(string? Reason = null) : MenuAction;
     public record MenuExtra(string Label, string Callback, Func<MenuContext, MenuAction> Action);
-
-    public record MenuDescriptor(
-        Func<MenuContext, string> Title,
-        Func<IReadOnlyCollection<IPagiable>>? GetItems,
-        int PageSize,
-        IReadOnlyList<MenuExtra> Extras,
-        Func<IPagiable, MenuAction>? OnItem,
-        int RowSize = 3);
 }

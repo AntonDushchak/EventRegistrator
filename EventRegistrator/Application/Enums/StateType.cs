@@ -3,6 +3,9 @@
     public enum StateType
     {
         EditTemplateText,
+        AddChat,
+        AddHashtag,
         Pagination,
+        Menu,
     }
 }

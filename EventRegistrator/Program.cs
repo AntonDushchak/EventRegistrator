@@ -131,7 +131,7 @@ namespace EventRegistrator
 
         private static async Task RunPolling(ITelegramBotClient bot, BotHandler handler)
         {
-            //MoveConsoleToSecondMonitor();
+            MoveConsoleToSecondMonitor();
             using var cts = new CancellationTokenSource();
             Log.Information("Starting in polling mode...");
             bot.StartReceiving(handler.HandleUpdateAsync, handler.HandleErrorAsync, cancellationToken: cts.Token);
