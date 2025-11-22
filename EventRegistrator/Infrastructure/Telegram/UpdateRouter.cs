@@ -1,6 +1,5 @@
 ﻿using EventRegistrator.Application.DTOs;
 using EventRegistrator.Application.Interfaces;
-using EventRegistrator.Domain.DTO;
 using Microsoft.Extensions.Logging;
 
 namespace EventRegistrator.Infrastructure.Telegram

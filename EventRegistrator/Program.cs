@@ -7,6 +7,7 @@ using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Infrastructure.Config;
 using EventRegistrator.Infrastructure.Persistence;
 using EventRegistrator.Infrastructure.Telegram;
+using EventRegistrator.Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;

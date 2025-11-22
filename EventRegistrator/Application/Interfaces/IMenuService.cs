@@ -1,5 +1,5 @@
 ﻿using EventRegistrator.Application.Enums;
-using EventRegistrator.Application.States;
+using EventRegistrator.Application.States.Menu;
 
 namespace EventRegistrator.Application.Interfaces
 {

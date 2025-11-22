@@ -1,0 +1,39 @@
+﻿using EventRegistrator.Application.Enums;
+using EventRegistrator.Application.Models;
+using EventRegistrator.Domain.Entities;
+using EventRegistrator.Domain.Interfaces;
+
+namespace EventRegistrator.Application.States.Menu
+{
+    public class EventsMenu : Menu
+    {
+        private readonly string _title;
+
+        public EventsMenu(MenuContext menuContext, Func<IReadOnlyCollection<IPagiable>?> getItems, string title) 
+            : base(menuContext, getItems)
+        {
+            _title = title;
+        }
+
+        protected override MenuButtons BuildButtons(MenuContext ctx) =>
+            new(
+                new[]
+                {
+                new MenuExtra("🔙 Назад", "back",
+                    _ => new NavigateMenu(MenuKey.Hashtags, ctx))
+                },
+                _maxObjPerPage,
+                _getItems,
+                (ip) =>
+                {
+                    var @event = (Event)ip;
+                    return new NavigateMenu(
+                        NextKey: MenuKey.EventDetailts,
+                        Ctx: ctx with { EventId = @event.Id }
+                    );
+                }
+            );
+
+        protected override string BuildTitle(MenuContext ctx) => _title;
+    }
+}

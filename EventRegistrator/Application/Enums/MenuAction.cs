@@ -1,10 +1,4 @@
-﻿using EventRegistrator.Application.DTOs;
-using EventRegistrator.Application.Interfaces;
-using EventRegistrator.Domain.DTO;
-using EventRegistrator.Domain.Entities;
-using EventRegistrator.Domain.Interfaces;
-
-namespace EventRegistrator.Application.Enums
+﻿namespace EventRegistrator.Application.Enums
 {
     public abstract record MenuAction;
     public record MenuContext(

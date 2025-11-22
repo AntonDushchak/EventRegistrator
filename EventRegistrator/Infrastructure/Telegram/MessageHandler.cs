@@ -1,6 +1,5 @@
 ﻿using EventRegistrator.Application.DTOs;
 using EventRegistrator.Domain;
-using EventRegistrator.Domain.DTO;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 

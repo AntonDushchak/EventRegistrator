@@ -1,6 +1,5 @@
 ﻿using EventRegistrator.Application.Commands.Attributes;
 using EventRegistrator.Application.DTOs;
-using EventRegistrator.Domain.DTO;
 using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Infrastructure.Persistence;
 

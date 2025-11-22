@@ -3,14 +3,13 @@ using EventRegistrator.Application.Factories;
 using EventRegistrator.Application.Handlers;
 using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Application.Services;
-using EventRegistrator.Application.States;
 using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Infrastructure.Persistence;
 using EventRegistrator.Infrastructure.Telegram;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 
-namespace EventRegistrator
+namespace EventRegistrator.Infrastructure.Utils
 {
     public static class ServiceCollectionExtentions
     {

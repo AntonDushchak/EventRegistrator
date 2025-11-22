@@ -1,4 +1,4 @@
-﻿using EventRegistrator.Domain.DTO;
+﻿using EventRegistrator.Application.DTOs;
 using Telegram.Bot.Types;
 
 namespace EventRegistrator.Infrastructure.Telegram

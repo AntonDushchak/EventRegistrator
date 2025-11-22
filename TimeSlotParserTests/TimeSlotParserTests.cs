@@ -1,4 +1,4 @@
-using EventRegistrator.Domain.DTO;
+using EventRegistrator.Application.DTOs;
 using EventRegistrator.Infrastructure.Utils;
 
 namespace TimeSlotParserTests

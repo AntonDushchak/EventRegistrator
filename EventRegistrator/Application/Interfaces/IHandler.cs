@@ -1,5 +1,4 @@
 ﻿using EventRegistrator.Application.DTOs;
-using EventRegistrator.Domain.DTO;
 
 namespace EventRegistrator.Application.Interfaces
 {
