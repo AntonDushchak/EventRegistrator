@@ -10,19 +10,19 @@ namespace EventRegistrator.Application.States
     public class MenuState : IState
     {
         private readonly IMenuService _menuService;
-        private readonly IStateFactory _stateFactory;
+        private readonly IMenuActionHandler _menuActionHandler;
         private MenuKey _key;
         private MenuContext _ctx;
         private int _page;
 
         private const string _pagePrefix = "page_";
 
-        public MenuState(IMenuService menuService, MenuKey key, MenuContext ctx, IStateFactory stateFactory, int startPage = 0)
+        public MenuState(IMenuService menuService, IMenuActionHandler menuActionHandler, MenuKey key, MenuContext ctx, int startPage = 0)
         {
             _menuService = menuService;
+            _menuActionHandler = menuActionHandler;
             _key = key;
             _ctx = ctx;
-            _stateFactory = stateFactory;
             _page = startPage;
         }
 
@@ -82,45 +82,52 @@ namespace EventRegistrator.Application.States
 
         private async Task<List<Response>> ApplyAction(MenuAction action, MessageDTO message, UserAdmin user)
         {
+            if (action is NavigateMenu nm)
+            {
+                _key = nm.NextKey;
+                _ctx = nm.Ctx;
+                _page = nm.StartPage;
+                return new List<Response> { await Handle(message, user) };
+            }
+
+            return await _menuActionHandler.Handle(action, message, user);
+        }  
+    }
+
+    public interface IMenuActionHandler
+    {
+        Task<List<Response>> Handle(MenuAction action, MessageDTO message, UserAdmin user);
+    }
+
+    public class MenuActionHandler : IMenuActionHandler
+    {
+        private readonly IStateFactory _stateFactory;
+        private readonly ICommandFactory _commandFactory;
+
+        public MenuActionHandler(IStateFactory stateFactory, ICommandFactory commandFactory)
+        {
+            _stateFactory = stateFactory;
+            _commandFactory = commandFactory;
+        }
+
+        public async Task<List<Response>> Handle(MenuAction action, MessageDTO message, UserAdmin user)
+        {
             switch (action)
             {
-                case NavigateMenu nm:
-                    //var menu = _menuService.Get(nm.NextKey, nm.Ctx);
-                    //user.CurrentContext = nm.Ctx;
-                    //user.SaveMenu(menu);
-                    _key = nm.NextKey;
-                    _ctx = nm.Ctx;
-                    return [await Handle(message, user)];
-
                 case SwitchState ss:
-                    user.SetCurrentState(_stateFactory.CreateState(ss.StateType));
-                    return [await user.State.Handle(message, user)];
+                    var state = _stateFactory.CreateState(ss.StateType);
+                    user.SetCurrentState(state);
+                    return new List<Response> { await user.State.Handle(message, user) };
 
                 case RunCommand rc:
-                    var responses = await rc.Action(message, user);
-                    return responses ?? [new Response { /* ... */ }];
+                    var cmd = _commandFactory.CreateCommand(rc.CommandName);
+                    var responses = await cmd.Execute(message, user);
+                    return responses ?? new List<Response> { new Response() };
 
                 case Noop:
                 default:
-                    return [await Handle(message, user)];
+                    return new List<Response>();
             }
         }
-
-        private Response GetResponseFromMenu(Menu menu, MenuContext menuContext)
-        {
-            var b = menu.GetButtons();
-            var b1 = b.CreateButtons();
-            var t = menu.GetTitle();
-            var r = new Response
-            {
-                Text = t,
-                ButtonData = new ButtonData(b1),
-                ChatId = menuContext.ChatId,
-            };
-
-
-            return r;
-        }
     }
-
 }

@@ -112,7 +112,7 @@ namespace EventRegistrator.Application.States
                     new MenuExtra("Редагувати", Constants.EditTemplateText,
                         c => new SwitchState(StateType.EditTemplateText)),
                     new MenuExtra("Видалити", Constants.DeleteHashtag,
-                    c => new RunCommand((message, user) => new DeleteHashtag().Execute(message, user))),
+                    c => new RunCommand(Constants.DeleteHashtag)),
                     new MenuExtra("🔙 Назад", "back",
                         _ => new NavigateMenu(MenuKey.Hashtags, ctx with { HashtagName = null }))
                 },
@@ -185,77 +185,57 @@ namespace EventRegistrator.Application.States
         }
     }
 
-    //public class ListMenu : Menu
-    //{
-    //    public ListMenu(MenuContext menuContext, IUserRepository userRepository) : base(menuContext, userRepository)
-    //    {
-    //    }
+    public class ListMenu : Menu
+    {
+        public ListMenu(MenuContext menuContext, IUserRepository userRepository) : base(menuContext, userRepository)
+        {
+        }
 
-    //    protected override MenuButtons BuildButtons(MenuContext ctx) =>
-    //        new(
-    //            new[]
-    //            {
-    //                new MenuExtra("🔙 Назад", "back",
-    //                    _ => new NavigateMenu(MenuKey.EventDetailts, ctx))
-    //            },
-    //            _maxObjPerPage,
-    //            () =>
-    //            {
-    //                var @event = _userRepository.GetUserByTargetChat(ctx.TargetChatId.Value).GetEvent(ctx.EventId.Value);
-    //                var participants = new List<ParticipantItem>();
-    //                var slotList = @event.Slots.OrderBy(s => s.Time).ToList();
-    //                foreach (var slot in slotList)
-    //                {
-    //                    var timeStr = slot.Time.ToString(@"hh\:mm");
-    //                    var registrations = slot.GetRegistrations();
+        protected override MenuButtons BuildButtons(MenuContext ctx) =>
+            new(
+                new[]
+                {
+                    new MenuExtra("🔙 Назад", "back",
+                        _ => new NavigateMenu(MenuKey.EventDetailts, ctx))
+                },
+                _maxObjPerPage,
+                () =>
+                {
+                    var @event = _userRepository.GetUserByTargetChat(ctx.TargetChatId.Value).GetEvent(ctx.EventId.Value);
+                    var participants = new List<ParticipantItem>();
+                    var slotList = @event.Slots.OrderBy(s => s.Time).ToList();
+                    foreach (var slot in slotList)
+                    {
+                        var timeStr = slot.Time.ToString(@"hh\:mm");
+                        var registrations = slot.GetRegistrations();
 
-    //                    foreach (var reg in registrations)
-    //                    {
-    //                        participants.Add(new ParticipantItem(
-    //                            reg.Name,
-    //                            timeStr,
-    //                            reg.Name,
-    //                            slot.Time
-    //                        ));
-    //                    }
-    //                }
+                        foreach (var reg in registrations)
+                        {
+                            participants.Add(new ParticipantItem(
+                                reg.Name,
+                                timeStr,
+                                reg.Name,
+                                slot.Time
+                            ));
+                        }
+                    }
 
-    //                return participants;
-    //            },
-    //            (ip) =>
-    //            {
-    //                var participant = (ParticipantItem)ip;
+                    return participants;
+                },
+                (ip) =>
+                {
+                    var participant = (ParticipantItem)ip;
 
-    //                return new RunCommand(async (message, user) =>
-    //                {
-    //                    var responseManager = new ResponseManager();
-    //                    var registrationService = new RegistrationService();
-    //                    var command = new DeleteReigstrationsByNameCommand(responseManager, registrationService);
+                    return new RunCommand("DeleteRegistrationsByNameInPrivate");
+                }
+            );
 
-    //                    var deleteMessage = new MessageDTO
-    //                    {
-    //                        ChatId = user.CurrentContext.TargetChatId.Value,
-    //                        Text = participant.ParticipantName + "-",
-    //                        ThreadId = user.CurrentContext?.EventId != null
-    //                            ? user.GetEvent(user.CurrentContext.EventId.Value).ThreadId : 0,
-    //                        Id = message.Id
-    //                    };
-
-    //                    var deletedResponses = await command.Execute(deleteMessage, user);
-    //                    user.SetCurrentState(new MenuState(this, MenuKey.List, user.CurrentContext, 0));
-    //                    var updatedResponse = await user.State.Handle(message, user);
-    //                    deletedResponses.Add(updatedResponse);
-    //                    return deletedResponses;
-    //                });
-    //            }
-    //        );
-
-    //    protected override string BuildTitle(MenuContext ctx)
-    //    {
-    //        var @event = _userRepository.GetUserByTargetChat(ctx.TargetChatId.Value).GetEvent(ctx.EventId.Value);
-    //        return $"Видалення відбувається по імені. Вибір однієї людини, видалить всі його записи \n\n{TextFormatter.FormatRegistrationsInfo(@event)}";
-    //    }
-    //}
+        protected override string BuildTitle(MenuContext ctx)
+        {
+            var @event = _userRepository.GetUserByTargetChat(ctx.TargetChatId.Value).GetEvent(ctx.EventId.Value);
+            return $"Видалення відбувається по імені. Вибір однієї людини, видалить всі його записи \n\n{TextFormatter.FormatRegistrationsInfo(@event)}";
+        }
+    }
 
     public class MenuButtons
     {

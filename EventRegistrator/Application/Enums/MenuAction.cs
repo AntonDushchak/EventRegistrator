@@ -15,7 +15,7 @@ namespace EventRegistrator.Application.Enums
 
     public record NavigateMenu(MenuKey NextKey, MenuContext Ctx, int StartPage = 0) : MenuAction;
     public record SwitchState(StateType StateType) : MenuAction;
-    public record RunCommand(Func<MessageDTO, UserAdmin, Task<List<Response>>> Action) : MenuAction;
+    public record RunCommand(string CommandName) : MenuAction;
     public record Noop(string? Reason = null) : MenuAction;
     public record MenuExtra(string Label, string Callback, Func<MenuContext, MenuAction> Action);
 }

@@ -26,7 +26,7 @@ namespace EventRegistrator.Application.Services
 
             MenuKey.EventDetailts => new EventDetailtsMenu(ctx, _userRepository),
 
-            //MenuKey.List => new ListMenu(ctx, _userRepository),
+            MenuKey.List => new ListMenu(ctx, _userRepository),
 
             _ => throw new ArgumentOutOfRangeException(nameof(key), key, null)
         };

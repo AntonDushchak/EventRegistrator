@@ -175,41 +175,7 @@ namespace EventRegistrator
             _loader = loader;
             _userRepository = userRepository;
 
-            services.AddSingleton(loader);
-            services.AddSingleton<IUserRepository>(userRepository);
-
-            services.AddSingleton<MessageSender>();
-            services.AddSingleton<EventService>();
-            services.AddSingleton<RegistrationService>();
-            services.AddSingleton<ResponseManager>();
-
-            services.AddSingleton<CommandRegistry>();
-            services.AddSingleton<ICommandFactory, CommandFactory>();
-
-            services.AddSingleton<IStateFactory, StateFactory>();
-            services.AddSingleton<IMenuStateFactory, MenuStateFactory>();
-            services.AddSingleton<IMenuService, MenuService>();
-
-            services.AddSingleton<PrivateMessageHandler>();
-            services.AddSingleton<TargetChatMessageHandler>();
-            services.AddSingleton<GeneralCallbackQueryHandler>();
-
-            services.AddSingleton<UpdateRouter>(sp =>
-                new UpdateRouter(
-                    new IHandler[]
-                    {
-                sp.GetRequiredService<PrivateMessageHandler>(),
-                sp.GetRequiredService<TargetChatMessageHandler>()
-                    },
-                    new IHandler[]
-                    {
-                sp.GetRequiredService<GeneralCallbackQueryHandler>()
-                    },
-                    sp.GetRequiredService<ILogger<UpdateRouter>>()
-                ));
-
-            services.AddSingleton<MessageHandler>();
-            services.AddSingleton<CallbackQueryHandler>();
+            services.AddEventRegistrator(loader, userRepository);
         }
 
         private static void StartPeriodicSaving(CancellationToken token)
