@@ -153,4 +153,7 @@
   <data name="TamplateForHashtag" xml:space="preserve">
     <value>Шаблон для хэштегу</value>
   </data>
+  <data name="WarningDeleteByName" xml:space="preserve">
+    <value>Видалення відбувається по імені. Вибір однієї людини, видалить всі його записи</value>
+  </data>
 </root>

@@ -1,10 +1,4 @@
-﻿using EventRegistrator.Application.Commands;
-using EventRegistrator.Application.Factories;
-using EventRegistrator.Application.Handlers;
-using EventRegistrator.Application.Interfaces;
-using EventRegistrator.Application.Services;
-using EventRegistrator.Domain.Interfaces;
-using EventRegistrator.Infrastructure.Config;
+﻿using EventRegistrator.Infrastructure.Config;
 using EventRegistrator.Infrastructure.Persistence;
 using EventRegistrator.Infrastructure.Telegram;
 using EventRegistrator.Infrastructure.Utils;
@@ -39,7 +33,7 @@ namespace EventRegistrator
         private static Timer _saveTimer;
         private static UserRepository _userRepository;
         private static RepositoryLoader _loader;
-        
+
         static async Task Main(string[] args)
         {
             DotNetEnv.Env.Load();
@@ -60,10 +54,14 @@ namespace EventRegistrator
                 RegisterAppServices(services);
 
                 var sp = services.BuildServiceProvider();
-
+                
                 var bot = sp.GetRequiredService<ITelegramBotClient>();
+
+                var adminCache = sp.GetRequiredService<IAdminCache>();
+                await InitializeAdminCache(adminCache);
+
                 var botHandler = new BotHandler(
-                    sp.GetRequiredService<MessageHandler>(), 
+                    sp.GetRequiredService<MessageHandler>(),
                     sp.GetRequiredService<CallbackQueryHandler>());
 
                 if (env == "Development")
@@ -87,7 +85,7 @@ namespace EventRegistrator
             }
         }
 
-        private static string GetRequiredEnv(string key) => 
+        private static string GetRequiredEnv(string key) =>
             Environment.GetEnvironmentVariable(key)
             ?? throw new InvalidOperationException($"{key} not set");
 
@@ -135,6 +133,7 @@ namespace EventRegistrator
             MoveConsoleToSecondMonitor();
             using var cts = new CancellationTokenSource();
             Log.Information("Starting in polling mode...");
+
             bot.StartReceiving(handler.HandleUpdateAsync, handler.HandleErrorAsync, cancellationToken: cts.Token);
             StartPeriodicSaving(cts.Token);
             Log.Information("Bot is running (polling). Press Ctrl+C to exit.");
@@ -164,6 +163,29 @@ namespace EventRegistrator
             Log.Information("Webhook stopped.");
         }
 
+        private static async Task InitializeAdminCache(IAdminCache adminCache)
+        {
+            try
+            {
+                Log.Information("Инициализация кэша администраторов...");
+
+                var allUsers = _userRepository.GetAllUsers();
+                var activeChatIds = allUsers
+                    .SelectMany(u => u.GetAllTargetChats())
+                    .Select(tc => tc.Id)
+                    .Distinct()
+                    .ToList();
+
+                await adminCache.InitializeAsync(activeChatIds);
+
+                Log.Information("Кэш администраторов инициализирован для {Count} чатов", activeChatIds.Count);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка при инициализации кэша администраторов");
+            }
+        }
+
         private static void RegisterAppServices(ServiceCollection services)
         {
             //EnvLoader.LoadDefaultUser1(userRepository);
@@ -175,6 +197,8 @@ namespace EventRegistrator
             var userRepository = loader.LoadData();
             _loader = loader;
             _userRepository = userRepository;
+
+            services.AddSingleton<IAdminCache, AdminCache>();
 
             services.AddEventRegistrator(loader, userRepository);
         }
@@ -261,10 +285,10 @@ namespace EventRegistrator
                     using var reader = new StreamReader(ctx.Request.InputStream);
                     var body = await reader.ReadToEndAsync();
 
-                    try 
+                    try
                     {
                         var update = JsonSerializer.Deserialize<Update>(body, _jsonOptions);
-                        
+
                         if (update != null)
                         {
                             if (update.Message != null)

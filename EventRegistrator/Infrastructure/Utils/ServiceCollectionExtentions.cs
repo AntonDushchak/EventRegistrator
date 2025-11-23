@@ -7,7 +7,6 @@ using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Infrastructure.Persistence;
 using EventRegistrator.Infrastructure.Telegram;
 using Microsoft.Extensions.DependencyInjection;
-using Telegram.Bot;
 
 namespace EventRegistrator.Infrastructure.Utils
 {
@@ -52,6 +51,7 @@ namespace EventRegistrator.Infrastructure.Utils
             services.AddSingleton<TargetChatMessageHandler>();
             services.AddSingleton<GeneralCallbackQueryHandler>();
 
+            services.AddSingleton<UpdateMapper>();
             services.AddSingleton<UpdateRouter>(sp =>
                 new UpdateRouter(
                     new IHandler[]

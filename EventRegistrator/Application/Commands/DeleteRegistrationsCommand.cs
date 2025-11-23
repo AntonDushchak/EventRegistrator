@@ -4,7 +4,6 @@ using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Application.Services;
 using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
-using Telegram.Bot.Types;
 
 namespace EventRegistrator.Application.Commands
 {
@@ -29,7 +28,7 @@ namespace EventRegistrator.Application.Commands
                 return [];
             }
 
-            if (message.IsEdit && message.IsReply && message.ReplyToMessageId == @event.PostId)
+            if (IsEditOfOriginalMessage(message, @event.PostId))
             {
                 var resultUndo = _registrationService.CancelRegistration(@event, message.Id);
                 if (resultUndo.Success)
@@ -43,7 +42,7 @@ namespace EventRegistrator.Application.Commands
                 return [];
             }
 
-            else if (message.IsReply && message.UserId == message.ReplyToMessage?.UserId)
+            else if (IsSelfReply(message) || message.IsFromAdmin)
             {
                 var resultUndo = _registrationService.CancelRegistration(@event, message.ReplyToMessageId ?? 0);
                 if (resultUndo.Success)
@@ -60,6 +59,15 @@ namespace EventRegistrator.Application.Commands
             return [];
         }
 
+        private bool IsEditOfOriginalMessage(MessageDTO message, int postId)
+        {
+            return message.IsEdit && message.IsReply && message.ReplyToMessageId == postId;
+        }
+
+        private bool IsSelfReply(MessageDTO message)
+        {
+            return message.IsReply && message.UserId == message.ReplyToMessage?.UserId;
+        }
         private List<Response> GetSuccessResponsesForEdit(UserAdmin user, RegistrationResult result, int messageId)
         {
             var messages = _responseManager.PrepareNotificationMessages(user, result.Event);

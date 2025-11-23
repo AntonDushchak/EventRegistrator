@@ -6,8 +6,8 @@ namespace EventRegistrator.Infrastructure.Telegram
 {
     public class BotHandler : IUpdateHandler
     {
-        private MessageHandler _messageHandler;
-        private CallbackQueryHandler _callbackQueryHandler;
+        private readonly MessageHandler _messageHandler;
+        private readonly CallbackQueryHandler _callbackQueryHandler;
 
         public BotHandler(MessageHandler messageHandler, CallbackQueryHandler callbackQueryHandler)
         {

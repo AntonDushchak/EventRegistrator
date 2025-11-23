@@ -167,5 +167,14 @@ namespace EventRegistrator.Application.Localization {
                 return ResourceManager.GetString("TamplateForHashtag", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Видалення відбувається по імені. Вибір однієї людини, видалить всі його записи.
+        /// </summary>
+        internal static string WarningDeleteByName {
+            get {
+                return ResourceManager.GetString("WarningDeleteByName", resourceCulture);
+            }
+        }
     }
 }

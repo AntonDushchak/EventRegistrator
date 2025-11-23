@@ -23,7 +23,8 @@ namespace EventRegistrator.Application.Commands
                 Text = message.Text + "-",
                 ThreadId = user.CurrentContext?.EventId != null
                     ? user.GetEvent(user.CurrentContext.EventId.Value).ThreadId : 0,
-                Id = message.Id
+                Id = message.Id,
+                IsFromAdmin = true
             };
 
             var deleteCommand = _commandFactory.CreateCommand("DeleteRegistrationsByName");

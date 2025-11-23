@@ -1,5 +1,4 @@
 ﻿using EventRegistrator.Application.DTOs;
-using EventRegistrator.Domain;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -9,25 +8,27 @@ namespace EventRegistrator.Infrastructure.Telegram
     {
         private readonly MessageSender _messageSender;
         private readonly UpdateRouter _updateRouter;
+        private readonly UpdateMapper _updateMapper;
 
-        public MessageHandler(MessageSender messageSender, UpdateRouter updateRouter)
+        public MessageHandler(MessageSender messageSender, UpdateRouter updateRouter, UpdateMapper updateMapper)
         {
             _messageSender = messageSender;
             _updateRouter = updateRouter;
+            _updateMapper = updateMapper;
         }
 
         public async Task ProcessMessage(Message message)
         {
             if (message.Type == MessageType.MigrateFromChatId || message.Type == MessageType.MigrateToChatId) return;
             if (message.Text == null && message.Caption == null) return;
-            var messageDto = UpdateMapper.Map(message);
+            var messageDto = _updateMapper.Map(message);
             var responses = GetResponse(messageDto);
             await ProcessMessagesAsync(responses.Result);
         }
 
         public async Task ProcessEditMessage(Message message)
         {
-            var messageDto = UpdateMapper.Map(message);
+            var messageDto = _updateMapper.Map(message);
             messageDto.IsEdit = true;
             var responses = GetResponse(messageDto);
             await ProcessMessagesAsync(responses.Result);
@@ -58,7 +59,7 @@ namespace EventRegistrator.Infrastructure.Telegram
                     {
                         saveMessageIdCallback?.Invoke(sentMessage.MessageId);
                     }
-                    
+
                     if (sentMessage.MessageThreadId != default)
                     {
                         saveMessageThreadIdCallback?.Invoke(sentMessage.MessageThreadId ?? 0);
@@ -70,6 +71,6 @@ namespace EventRegistrator.Infrastructure.Telegram
                     Console.WriteLine($"Данные сообщения: ChatId={message.ChatId}, Text={message.Text}, MessageToEditId={message.MessageToEditId}, MessageToReplyId={message.MessageToReplyId}, Like={message.Like}, UnLike={message.UnLike}");
                 }
             }));
-        } 
+        }
     }
 }
