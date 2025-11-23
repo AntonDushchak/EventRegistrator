@@ -19,14 +19,11 @@ namespace CommandTests
         [SetUp]
         public void Setup()
         {
-            // Создаем моки для зависимостей
             _registrationServiceMock = new Mock<RegistrationService>();
             _responseManagerMock = new Mock<ResponseManager>();
 
-            // Создаем команду с моками
             _command = new DeleteRegistrationsCommand(_registrationServiceMock.Object, _responseManagerMock.Object);
 
-            // Создаем тестовое сообщение
             _message = new MessageDTO
             {
                 ChatId = 123456,
@@ -35,10 +32,8 @@ namespace CommandTests
                 Id = 555
             };
 
-            // Создаем тестовое событие
             _event = new Event("Test Event", 888, 123456, "test");
 
-            // Создаем тестового пользователя
             _userAdmin = new UserAdmin(101112);
             _userAdmin.AddEvent(_event);
         }
@@ -46,20 +41,16 @@ namespace CommandTests
         [Test]
         public async Task Execute_WhenEventIsNull_ReturnsEmptyList()
         {
-            // Arrange
             var userAdmin = new UserAdmin(101113);
 
-            // Act
             var result = await _command.Execute(_message, userAdmin);
 
-            // Assert
             Assert.That(result, Is.Empty);
         }
 
         [Test]
         public async Task Execute_WithEditAndReplyToPost_CancelsRegistrationAndReturnsResponses()
         {
-            // Arrange
             _message.IsEdit = true;
             _message.IsReply = true;
             _message.ReplyToMessageId = 888;
@@ -87,10 +78,8 @@ namespace CommandTests
                 .Setup(m => m.CreateLikeMessage(_event.TargetChatId, It.IsAny<int>()))
                 .Returns(new Response());
 
-            // Act
             var result = await _command.Execute(_message, _userAdmin);
 
-            // Assert
             Assert.That(result, Is.Not.Empty);
             _registrationServiceMock.Verify(s => s.CancelRegistration(_event, _message.Id), Times.Once);
         }
@@ -162,7 +151,7 @@ namespace CommandTests
         [Test]
         public async Task Execute_WithInvalidConditions_ReturnsEmptyList()
         {
-            // Arrange - сообщение без признаков редактирования и не является ответом
+            // Arrange
             _message.IsEdit = false;
             _message.IsReply = false;
 

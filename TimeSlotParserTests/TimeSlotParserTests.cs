@@ -207,7 +207,6 @@ namespace TimeSlotParserTests
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Count, Is.EqualTo(3));
 
-            // Все форматы должны давать одинаковое время
             var expectedTime = new TimeSpan(10, 0, 0);
             Assert.That(result[0].Name, Is.EqualTo("Тест1"));
             Assert.That(result[0].RegistrationOnTime, Is.EqualTo(expectedTime));
@@ -303,7 +302,6 @@ namespace TimeSlotParserTests
         public void ParseRegistrationMessage_PlusSymbolWithMultipleSlots_ShouldNotRegister()
         {
             // Arrange
-            // Используем обычный _slotMap, в котором больше одного слота
             var message = CreateMessage("Тест+", 123456789, new DateTime(2025, 8, 8));
 
             // Act
