@@ -1,5 +1,5 @@
-﻿using EventRegistrator.Application.Enums;
-using EventRegistrator.Domain.DTO;
+﻿using EventRegistrator.Application.DTOs;
+using EventRegistrator.Application.Enums;
 using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 

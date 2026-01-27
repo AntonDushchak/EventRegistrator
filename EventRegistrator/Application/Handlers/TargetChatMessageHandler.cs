@@ -2,7 +2,6 @@
 using EventRegistrator.Application.DTOs;
 using EventRegistrator.Application.Factories;
 using EventRegistrator.Application.Interfaces;
-using EventRegistrator.Domain.DTO;
 using EventRegistrator.Domain.Entities;
 using EventRegistrator.Domain.Interfaces;
 using Microsoft.Extensions.Logging;

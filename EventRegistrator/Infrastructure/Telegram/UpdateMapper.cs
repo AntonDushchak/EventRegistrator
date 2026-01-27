@@ -1,12 +1,19 @@
-﻿using EventRegistrator.Domain.DTO;
+﻿using EventRegistrator.Application.DTOs;
 using Telegram.Bot.Types;
 
 namespace EventRegistrator.Infrastructure.Telegram
 {
-    public static class UpdateMapper
+    public class UpdateMapper
     {
         private static readonly TimeSpan _timeZoneOffset = TimeSpan.FromHours(3);
-        public static MessageDTO Map(Message message)
+        private readonly IAdminCache _adminCache;
+
+        public UpdateMapper(IAdminCache adminCache)
+        {
+            _adminCache = adminCache;
+        }
+
+        public MessageDTO Map(Message message)
         {
             var messageDto = new MessageDTO
             {
@@ -16,7 +23,7 @@ namespace EventRegistrator.Infrastructure.Telegram
                 UserId = message.From?.Id,
                 ReplyToMessageId = message.ReplyToMessage?.Id,
                 Created = message.Date.Add(_timeZoneOffset),
-                //IsFromAdmin = message.From.
+                IsFromAdmin = message.From != null && _adminCache.IsAdmin(message.Chat.Id, message.From.Id)
             };
 
             if (messageDto.ReplyToMessageId != null)
@@ -45,7 +52,7 @@ namespace EventRegistrator.Infrastructure.Telegram
             return messageDto;
         }
 
-        public static List<MessageDTO> Map(List<Message> messages)
+        public List<MessageDTO> Map(List<Message> messages)
         {
             var result = new List<MessageDTO>();
             foreach (var message in messages)
@@ -55,7 +62,7 @@ namespace EventRegistrator.Infrastructure.Telegram
             return result;
         }
 
-        public static MessageDTO Map(CallbackQuery callbackQuery)
+        public MessageDTO Map(CallbackQuery callbackQuery)
         {
             var message = Map(callbackQuery.Message);
             var messageDto = new MessageDTO
@@ -65,7 +72,8 @@ namespace EventRegistrator.Infrastructure.Telegram
                 Text = callbackQuery.Data,
                 UserId = callbackQuery.From.Id,
                 ReplyToMessageId = message.ReplyToMessageId,
-                Created = message.Created
+                Created = message.Created,
+                IsFromAdmin = callbackQuery.From != null && _adminCache.IsAdmin(message.ChatId, callbackQuery.From.Id)
             };
 
             return messageDto;

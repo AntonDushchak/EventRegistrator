@@ -1,4 +1,4 @@
-﻿namespace EventRegistrator.Domain.DTO
+﻿namespace EventRegistrator.Application.DTOs
 {
     public class MessageDTO
     {

@@ -8,17 +8,19 @@ namespace EventRegistrator.Infrastructure.Telegram
     {
         private readonly MessageSender _messageSender;
         private readonly UpdateRouter _updateRouter;
+        private readonly UpdateMapper _updateMapper;
 
-        public CallbackQueryHandler(MessageSender messageSender, UpdateRouter updateRouter)
+        public CallbackQueryHandler(MessageSender messageSender, UpdateRouter updateRouter, UpdateMapper updateMapper)
         {
             _messageSender = messageSender;
             _updateRouter = updateRouter;
+            _updateMapper = updateMapper;
         }
 
         public async Task ProcessCallbackQuery(CallbackQuery callbackQuery)
         {
             await _messageSender.AnswerAsync(callbackQuery.Id);
-            var messageDto = UpdateMapper.Map(callbackQuery);
+            var messageDto = _updateMapper.Map(callbackQuery);
             var responses = await _updateRouter.RouteCallback(messageDto);
             await ProcessMessagesAsync(responses);
         }

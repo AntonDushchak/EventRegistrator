@@ -2,7 +2,6 @@
 using EventRegistrator.Application.DTOs;
 using EventRegistrator.Application.Interfaces;
 using EventRegistrator.Application.Services;
-using EventRegistrator.Domain.DTO;
 using EventRegistrator.Domain.Entities;
 using EventRegistrator.Infrastructure.Utils;
 
@@ -29,18 +28,34 @@ namespace EventRegistrator.Application.Commands
                 return [];
 
             }
-
-            var name = message.Text?.Trim('-', ' ');
-
-            var resultUndo = _registrationService.CancelRegistration(@event, name);
-            if (resultUndo.Success)
+            if (IsValid(message))
             {
-                var text = TimeSlotParser.UpdateTemplateText(@event.TemplateText, @event.Slots);
-                @event.UpdateTemplate(text);
-                return GetSuccessResponsesForEdit(user, resultUndo, message);
-            }
+                var name = message.Text?.Trim('-', ' ');
 
+                var resultUndo = _registrationService.CancelRegistration(@event, name);
+                if (resultUndo.Success)
+                {
+                    var text = TimeSlotParser.UpdateTemplateText(@event.TemplateText, @event.Slots);
+                    @event.UpdateTemplate(text);
+                    return GetSuccessResponsesForEdit(user, resultUndo, message);
+                }
+            }
+            
             return [];
+        }
+
+        private bool IsValid(MessageDTO message)
+        {
+            if (!IsSelfReply(message))
+            {
+                return message.IsFromAdmin;
+            }
+            return true;
+        }
+
+        private bool IsSelfReply(MessageDTO message)
+        {
+            return message.IsReply && message.UserId != null && message.ReplyToMessage?.UserId == message.UserId;
         }
 
         private List<Response> GetSuccessResponsesForEdit(UserAdmin user, RegistrationResult result, MessageDTO message)
