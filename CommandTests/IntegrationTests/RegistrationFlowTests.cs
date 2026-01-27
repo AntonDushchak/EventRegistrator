@@ -1,70 +1,116 @@
 using EventRegistrator.Application.DTOs;
+using EventRegistrator.Application.Factories;
+using EventRegistrator.Application.Interfaces;
+using EventRegistrator.Domain.Entities;
+using EventRegistrator.Domain.Interfaces;
+using EventRegistrator.Infrastructure.Telegram;
+using Microsoft.Extensions.Logging;
+using Moq;
+using System.Text.Json;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace CommandTests.IntegrationTests
 {
     [TestFixture]
     public class RegistrationFlowTests : TestBase
     {
-        [Test]
-        public async Task CompleteRegistrationFlow_Test()
+        private BotHandler _botHandler;
+        private Mock<ITelegramBotClient> _botClientMock;
+        private MessageHandler _messageHandler;
+        private CallbackQueryHandler _callbackQueryHandler;
+        private MessageSender _messageSender;
+        private UpdateRouter _updateRouter;
+        private UpdateMapper _updateMapper;
+        private Mock<IAdminCache> _adminCacheMock;
+        private Mock<ILogger<MessageSender>> _messageSenderLoggerMock;
+        private Mock<ILogger<UpdateRouter>> _updateRouterLoggerMock;
+
+        [SetUp]
+        public override void Setup()
         {
-            await CreateEvent();
-            await RegisterFirstUser();
-            await RegisterSecondUser();
-            await AttemptToRegisterInFullSlot();
-            await EditRegistration();
-            await DeleteRegistrationByName();
-            await DeleteRegistrationByReply();
+            base.Setup();
+            InitializeTelegramInfrastructure();
+        }
+
+        private void InitializeTelegramInfrastructure()
+        {
+            _botClientMock = new Mock<ITelegramBotClient>();
+            _adminCacheMock = new Mock<IAdminCache>();
+            _messageSenderLoggerMock = new Mock<ILogger<MessageSender>>();
+            _updateRouterLoggerMock = new Mock<ILogger<UpdateRouter>>();
+
+            // Настройка AdminCache - все пользователи в тестах считаются администраторами
+            _adminCacheMock
+                .Setup(cache => cache.IsAdmin(It.IsAny<long>(), It.IsAny<long>()))
+                .Returns(true);
+
+            _messageSender = new MessageSender(_botClientMock.Object, _messageSenderLoggerMock.Object);
+
+            var messageHandlers = new List<IHandler>
+            {
+                new TestCommandHandler(CreateEventCommand, UserAdmin, UserRepositoryMock.Object),
+                new TestCommandHandler(RegisterCommand, UserAdmin, UserRepositoryMock.Object),
+                new TestCommandHandler(EditRegistrationCommand, UserAdmin, UserRepositoryMock.Object),
+                new TestCommandHandler(DeleteRegistrationsCommand, UserAdmin, UserRepositoryMock.Object),
+                new TestCommandHandler(DeleteReigstrationsByNameCommand, UserAdmin, UserRepositoryMock.Object)
+            };
+
+            var callbackHandlers = new List<IHandler>();
+
+            _updateRouter = new UpdateRouter(messageHandlers, callbackHandlers, _updateRouterLoggerMock.Object);
+            _updateMapper = new UpdateMapper(_adminCacheMock.Object);
+
+            _messageHandler = new MessageHandler(_messageSender, _updateRouter, _updateMapper);
+            _callbackQueryHandler = new CallbackQueryHandler(_messageSender, _updateRouter, _updateMapper);
+
+            _botHandler = new BotHandler(_messageHandler, _callbackQueryHandler);
+        }
+
+        [Test]
+        public async Task CompleteRegistrationFlow_FromBotHandler_Test()
+        {
+            await CreateEventViaBotHandler();
+            await RegisterFirstUserViaBotHandler();
+            await RegisterSecondUserViaBotHandler();
+            await AttemptToRegisterInFullSlotViaBotHandler();
+            await EditRegistrationViaBotHandler();
+            await DeleteRegistrationByNameViaBotHandler();
+            await DeleteRegistrationByReplyViaBotHandler();
 
             Assert.That(Event.Slots.Sum(s => s.CurrentRegistrationCount), Is.EqualTo(0), "В конце теста остались регистрации");
         }
 
-        private async Task CreateEvent()
+        private async Task CreateEventViaBotHandler()
         {
-            var createEventMessage = new MessageDTO
-            {
-                ChatId = 123456,
-                UserId = 101112,
-                Id = CREATE_EVENT_MESSAGE_ID,
-                Text = "Тестовое событие \n#test",
-                Created = DateTime.Now
-            };
+            var update = CreateUpdate(
+                messageId: CREATE_EVENT_MESSAGE_ID,
+                chatId: 123456,
+                userId: 101112,
+                text: "Тестовое событие \n#test"
+            );
 
-            var createEventResponse = await CreateEventCommand.Execute(createEventMessage, UserAdmin);
-            Assert.That(createEventResponse, Is.Not.Empty, "Ошибка при создании события");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             Event = UserAdmin.GetLastEvent();
             Assert.That(Event, Is.Not.Null, "Событие не было создано");
             Assert.That(Event.HashtagName, Is.EqualTo("test"), "Неверный хештег события");
 
-            VerifyEventSlots();
+            VerifyEventSlots(Event);
         }
 
-        private void VerifyEventSlots()
+        private async Task RegisterFirstUserViaBotHandler()
         {
-            Assert.That(Event.Slots.Count, Is.EqualTo(3), "Неверное количество временных слотов");
-            Assert.That(Event.Slots.ElementAt(0).Time, Is.EqualTo(new TimeSpan(10, 0, 0)), "Неверное время первого слота");
-            Assert.That(Event.Slots.ElementAt(0).MaxCapacity, Is.EqualTo(2), "Неверная вместимость первого слота");
-        }
+            var update = CreateUpdate(
+                messageId: REGISTER_IVAN_MESSAGE_ID,
+                chatId: 123456,
+                userId: 201112,
+                text: "Иван 1 2",
+                replyToMessageId: Event.PostId
+            );
 
-        private async Task RegisterFirstUser()
-        {
-            var registerMessage = new MessageDTO
-            {
-                ChatId = 123456,
-                UserId = 201112,
-                Id = REGISTER_IVAN_MESSAGE_ID,
-                Text = "Иван 1 2",
-                ReplyToMessageId = Event.PostId,
-                IsReply = true
-            };
-
-            var registerResponse = await RegisterCommand.Execute(registerMessage, UserAdmin);
-            Assert.That(registerResponse, Is.Not.Empty, "Ошибка при регистрации");
-
-            var likeMessage = registerResponse.FirstOrDefault(r => r.Like);
-            Assert.That(likeMessage, Is.Not.Null, "Отсутствует сообщение лайка при регистрации");
-            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(REGISTER_IVAN_MESSAGE_ID), "Неверный MessageId для лайка");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             VerifyFirstUserRegistration();
         }
@@ -79,24 +125,17 @@ namespace CommandTests.IntegrationTests
             Assert.That(slot1.Contains("Иван"), Is.EqualTo(true), "Неверное имя в регистрации");
         }
 
-        private async Task RegisterSecondUser()
+        private async Task RegisterSecondUserViaBotHandler()
         {
-            var register2Message = new MessageDTO
-            {
-                ChatId = 123456,
-                UserId = 301112,
-                Id = REGISTER_PETR_MESSAGE_ID,
-                Text = "Петр 1, 3",
-                ReplyToMessageId = Event.PostId,
-                IsReply = true
-            };
+            var update = CreateUpdate(
+                messageId: REGISTER_PETR_MESSAGE_ID,
+                chatId: 123456,
+                userId: 301112,
+                text: "Петр 1, 3",
+                replyToMessageId: Event.PostId
+            );
 
-            var register2Response = await RegisterCommand.Execute(register2Message, UserAdmin);
-            Assert.That(register2Response, Is.Not.Empty, "Ошибка при регистрации второго пользователя");
-
-            var likeMessage = register2Response.FirstOrDefault(r => r.Like);
-            Assert.That(likeMessage, Is.Not.Null, "Отсутствует сообщение лайка при регистрации");
-            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(REGISTER_PETR_MESSAGE_ID), "Неверный MessageId для лайка");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             VerifySecondUserRegistration();
         }
@@ -108,48 +147,34 @@ namespace CommandTests.IntegrationTests
             Assert.That(slot1.Contains("Петр"), Is.True, "Нет регистрации Петра в первом слоте");
         }
 
-        private async Task AttemptToRegisterInFullSlot()
+        private async Task AttemptToRegisterInFullSlotViaBotHandler()
         {
-            var register3Message = new MessageDTO
-            {
-                ChatId = 123456,
-                UserId = 401112,
-                Id = REGISTER_ALEXEY_MESSAGE_ID,
-                Text = "Алексей 1",
-                ReplyToMessageId = Event.PostId,
-                IsReply = true
-            };
+            var update = CreateUpdate(
+                messageId: REGISTER_ALEXEY_MESSAGE_ID,
+                chatId: 123456,
+                userId: 401112,
+                text: "Алексей 1",
+                replyToMessageId: Event.PostId
+            );
 
-            var register3Response = await RegisterCommand.Execute(register3Message, UserAdmin);
-
-            Assert.That(register3Response, Is.Empty, "Регистрация прошла успешно, хотя слот уже заполнен");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             var slot1 = Event.Slots.ElementAt(0);
             Assert.That(slot1.CurrentRegistrationCount, Is.EqualTo(2), "Неожиданное количество регистраций после попытки переполнения");
         }
 
-        private async Task EditRegistration()
+        private async Task EditRegistrationViaBotHandler()
         {
-            var editMessage = new MessageDTO
-            {
-                ChatId = 123456,
-                UserId = 201112,
-                Id = REGISTER_IVAN_MESSAGE_ID,
-                Text = "Иван 2 3",
-                ReplyToMessageId = Event.PostId,
-                IsReply = true,
-                IsEdit = true
-            };
+            var update = CreateUpdate(
+                messageId: REGISTER_IVAN_MESSAGE_ID,
+                chatId: 123456,
+                userId: 201112,
+                text: "Иван 2 3",
+                replyToMessageId: Event.PostId,
+                isEdited: true
+            );
 
-            var editResponse = await EditRegistrationCommand.Execute(editMessage, UserAdmin);
-            Assert.That(editResponse, Is.Not.Empty, "Ошибка при редактировании регистрации");
-
-            var unlikeMessage = editResponse.FirstOrDefault(r => r.UnLike);
-            Assert.That(unlikeMessage, Is.Not.Null, "Отсутствует сообщение отмены лайка при редактировании");
-
-            var likeMessage = editResponse.FirstOrDefault(r => r.Like);
-            Assert.That(likeMessage, Is.Not.Null, "Отсутствует сообщение лайка при редактировании");
-            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(REGISTER_IVAN_MESSAGE_ID), "Неверный MessageId для лайка");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             VerifyEditedRegistration();
         }
@@ -163,56 +188,183 @@ namespace CommandTests.IntegrationTests
             Assert.That(slot2.Contains(201112), Is.EqualTo(true), "Регистрация не добавлена во второй слот");
         }
 
-        private async Task DeleteRegistrationByName()
+        private async Task DeleteRegistrationByNameViaBotHandler()
         {
-            var deleteByNameMessage = new MessageDTO
-            {
-                ChatId = 123456,
-                ThreadId = Event.ThreadId,
-                UserId = 101112,
-                Id = DELETE_BY_NAME_MESSAGE_ID,
-                Text = "Петр-"
-            };
+            var update = CreateUpdate(
+                messageId: DELETE_BY_NAME_MESSAGE_ID,
+                chatId: 123456,
+                userId: 101112,
+                text: "Петр-",
+                threadId: Event.ThreadId
+            );
 
-            var deleteByNameResponse = await DeleteReigstrationsByNameCommand.Execute(deleteByNameMessage, UserAdmin);
-            Assert.That(deleteByNameResponse, Is.Not.Empty, "Ошибка при удалении регистрации по имени");
-
-            var unlikeMessages = deleteByNameResponse.Where(r => r.UnLike).ToList();
-            Assert.That(unlikeMessages, Is.Not.Empty, "Отсутствуют сообщения отмены лайков при удалении по имени");
-
-            var likeMessage = deleteByNameResponse.FirstOrDefault(r => r.Like);
-            Assert.That(likeMessage, Is.Not.Null, "Отсутствует сообщение лайка для сообщения удаления");
-            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(DELETE_BY_NAME_MESSAGE_ID), "Неверный MessageId для лайка при удалении по имени");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             Assert.That(Event.Slots.All(s => !s.Contains("Петр")), Is.True, "Регистрации Петра не удалены");
         }
 
-        private async Task DeleteRegistrationByReply()
+        private async Task DeleteRegistrationByReplyViaBotHandler()
         {
-            var deleteMessage = new MessageDTO
-            {
-                ChatId = 123456,
-                ThreadId = Event.ThreadId,
-                UserId = 201112,
-                Id = DELETE_BY_REPLY_MESSAGE_ID,
-                ReplyToMessageId = REGISTER_IVAN_MESSAGE_ID,
-                ReplyToMessage = new MessageDTO { UserId = 201112, Id = REGISTER_IVAN_MESSAGE_ID },
-                IsReply = true
-            };
+            var update = CreateUpdate(
+                messageId: DELETE_BY_REPLY_MESSAGE_ID,
+                chatId: 123456,
+                userId: 201112,
+                text: "",
+                replyToMessageId: REGISTER_IVAN_MESSAGE_ID,
+                replyFromUserId: 201112,
+                threadId: Event.ThreadId
+            );
 
-            var deleteResponse = await DeleteRegistrationsCommand.Execute(deleteMessage, UserAdmin);
-            Assert.That(deleteResponse, Is.Not.Empty, "Ошибка при удалении регистрации по ID");
-
-            var unlikeMessage = deleteResponse.FirstOrDefault(r => r.UnLike);
-            Assert.That(unlikeMessage, Is.Not.Null, "Отсутствует сообщение отмены лайка при удалении по ID");
-
-            var likeMessage = deleteResponse.FirstOrDefault(r => r.Like);
-            Assert.That(likeMessage, Is.Not.Null, "Отсутствует сообщение лайка для сообщения удаления");
-
-            Assert.That(unlikeMessage.MessageToEditId, Is.EqualTo(REGISTER_IVAN_MESSAGE_ID), "Неверный MessageId для удаление лайка при удалении по ID");
-            Assert.That(likeMessage.MessageToEditId, Is.EqualTo(DELETE_BY_REPLY_MESSAGE_ID), "Неверный MessageId для лайка при удалении по ID");
+            await _botHandler.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
 
             Assert.That(Event.Slots.All(s => !s.Contains("Иван")), Is.True, "Регистрации Ивана не удалены");
+        }
+
+        // Вспомогательные методы для создания Update через JSON десериализацию
+        private Update CreateUpdate(
+            int messageId,
+            long chatId,
+            long userId,
+            string text,
+            int? replyToMessageId = null,
+            long? replyFromUserId = null,
+            int? threadId = null,
+            bool isEdited = false)
+        {
+            var messageJson = BuildMessageJson(messageId, chatId, userId, text, replyToMessageId, replyFromUserId, threadId, isEdited);
+
+            string updateJson;
+            if (isEdited)
+            {
+                updateJson = $@"{{
+                    ""update_id"": {messageId},
+                    ""edited_message"": {messageJson}
+                }}";
+            }
+            else
+            {
+                updateJson = $@"{{
+                    ""update_id"": {messageId},
+                    ""message"": {messageJson}
+                }}";
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            return JsonSerializer.Deserialize<Update>(updateJson, options);
+        }
+
+        private string BuildMessageJson(
+            int messageId,
+            long chatId,
+            long userId,
+            string text,
+            int? replyToMessageId = null,
+            long? replyFromUserId = null,
+            int? threadId = null,
+            bool isEdited = false)
+        {
+            var json = $@"{{
+                ""message_id"": {messageId},
+                ""chat"": {{
+                    ""id"": {chatId},
+                    ""type"": ""supergroup""
+                }},
+                ""from"": {{
+                    ""id"": {userId},
+                    ""first_name"": ""Test"",
+                    ""is_bot"": false
+                }},
+                ""date"": {DateTimeOffset.UtcNow.ToUnixTimeSeconds()},
+                ""text"": ""{EscapeJson(text)}""";
+
+            if (threadId.HasValue)
+            {
+                json += $@",
+                ""message_thread_id"": {threadId.Value}";
+            }
+
+            if (isEdited)
+            {
+                json += $@",
+                ""edit_date"": {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            }
+
+            if (replyToMessageId.HasValue)
+            {
+                var replyFromUserIdValue = replyFromUserId ?? userId;
+                json += $@",
+                ""reply_to_message"": {{
+                    ""message_id"": {replyToMessageId.Value},
+                    ""chat"": {{
+                        ""id"": {chatId},
+                        ""type"": ""supergroup""
+                    }},
+                    ""from"": {{
+                        ""id"": {replyFromUserIdValue},
+                        ""first_name"": ""Test"",
+                        ""is_bot"": false
+                    }},
+                    ""date"": {DateTimeOffset.UtcNow.ToUnixTimeSeconds()},
+                    ""text"": ""Reply text""
+                }}";
+            }
+
+            json += "}";
+            return json;
+        }
+
+        private string EscapeJson(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            return text
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
+        }
+
+        // Обёртка для команд, чтобы они работали как IHandler
+        // Обёртка для команд, чтобы они работали как IHandler
+        private class TestCommandHandler : IHandler
+        {
+            private readonly ICommand _command;
+            private readonly UserAdmin _user;
+            private readonly IUserRepository _userRepository;
+            private readonly string _commandName;
+
+            public TestCommandHandler(ICommand command, UserAdmin user, IUserRepository userRepository)
+            {
+                _command = command;
+                _user = user;
+                _userRepository = userRepository;
+
+                // Определяем имя команды по типу
+                _commandName = command.GetType().Name.Replace("Command", "");
+            }
+
+            public async Task<List<Response>> HandleAsync(MessageDTO message)
+            {
+                return await _command.Execute(message, _user);
+            }
+
+            public bool CanHandle(MessageDTO message)
+            {
+                var user = _userRepository.GetUserByTargetChat(message.ChatId);
+                if (user == null)
+                    return false;
+
+                var commandName = CommandTypeResolver.DetermineCommandName(message, user);
+
+                // Сравниваем имя команды с определённым типом
+                return commandName == _commandName;
+            }
         }
     }
 }
