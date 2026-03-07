@@ -37,9 +37,10 @@ namespace EventRegistrator.Application.Services
 
             return new RegistrationResult { Event = @event, MessageIds = [messageId], Success = true };
         }
-        public RegistrationResult CancelRegistration(Event @event, string name)
+
+        public RegistrationResult CancelRegistration(Event @event, string name, long userId)
         {
-            var ids = @event.RemoveRegistrations(name);
+            var ids = @event.RemoveRegistrations(name, userId);
             if (ids.Count == 0)
             {
                 return new RegistrationResult { Event = @event, MessageIds = ids, Success = false };

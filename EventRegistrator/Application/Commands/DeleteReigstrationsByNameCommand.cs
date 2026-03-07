@@ -28,34 +28,19 @@ namespace EventRegistrator.Application.Commands
                 return [];
 
             }
-            if (IsValid(message))
-            {
-                var name = message.Text?.Trim('-', ' ');
 
-                var resultUndo = _registrationService.CancelRegistration(@event, name);
-                if (resultUndo.Success)
-                {
-                    var text = TimeSlotParser.UpdateTemplateText(@event.TemplateText, @event.Slots);
-                    @event.UpdateTemplate(text);
-                    return GetSuccessResponsesForEdit(user, resultUndo, message);
-                }
+            var name = message.Text?.Trim('-', ' ');
+
+            var resultUndo = _registrationService.CancelRegistration(@event, name, message.UserId.Value);
+            if (resultUndo.Success)
+            {
+                var text = TimeSlotParser.UpdateTemplateText(@event.TemplateText, @event.Slots);
+                @event.UpdateTemplate(text);
+                return GetSuccessResponsesForEdit(user, resultUndo, message);
             }
-            
+
+
             return [];
-        }
-
-        private bool IsValid(MessageDTO message)
-        {
-            if (!IsSelfReply(message))
-            {
-                return message.IsFromAdmin;
-            }
-            return true;
-        }
-
-        private bool IsSelfReply(MessageDTO message)
-        {
-            return message.IsReply && message.UserId != null && message.ReplyToMessage?.UserId == message.UserId;
         }
 
         private List<Response> GetSuccessResponsesForEdit(UserAdmin user, RegistrationResult result, MessageDTO message)
@@ -69,7 +54,7 @@ namespace EventRegistrator.Application.Commands
             {
                 messages.Add(_responseManager.CreateLikeMessage(result.Event.TargetChatId, message.Id));
             }
-            
+
             return messages;
         }
     }

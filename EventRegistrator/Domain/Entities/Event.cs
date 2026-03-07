@@ -1,5 +1,6 @@
 ﻿using EventRegistrator.Domain.Interfaces;
 using EventRegistrator.Infrastructure.Utils;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace EventRegistrator.Domain.Entities
@@ -102,6 +103,20 @@ namespace EventRegistrator.Domain.Entities
             return messageIds;
         }
 
+        public List<int> RemoveRegistrations(string name, long userId)
+        {
+            var messageIds = Slots.Select(ts => (ts.GetRegistration(name), ts))
+                .Where(r => r.Item1 != null && r.Item1.UserId == userId)
+                .Select(r =>
+                {
+                    r.ts.RemoveRegistration(r.Item1);
+                    return r.Item1.MessageId;
+                })
+                .ToList();
+
+            return messageIds;
+        }
+
         public bool AddRegistration(Registration registration)
         {
             var slot = TimeSlotParser.FindMatchingTimeSlot(_slots, registration);
@@ -113,7 +128,7 @@ namespace EventRegistrator.Domain.Entities
         public void UpdateTemplate(string text)
         {
             _templateText = text;
-        }
+        } 
 
         public void EditTemplate(string text)
         {
